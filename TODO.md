@@ -20,27 +20,46 @@
 
 ## 🚧 Fase 2 - Procesamiento Inteligente (EN PROGRESO)
 
-### Dialogflow Integration
+### Dialogflow CX Integration
 
-- [ ] Crear proyecto en Google Cloud Platform
-- [ ] Habilitar Dialogflow API
-- [ ] Crear agente de Dialogflow
-- [ ] Configurar intents básicos:
-  - [ ] Intent: Saludar
-  - [ ] Intent: Ayuda
-  - [ ] Intent: Pedir información
-  - [ ] Intent: Finalizar conversación
-- [ ] Crear entidades personalizadas (si aplica)
-- [ ] Configurar contextos para mantener estado
+- [x] Crear proyecto en Google Cloud Platform
+- [x] Habilitar Dialogflow API
+- [x] Diseñar arquitectura del agente (ver `docs/DIALOGFLOW_CX_DESIGN.md`)
+- [x] Instalar SDK: `@google-cloud/dialogflow-cx`
+- [x] Integrar código en backend:
+  - [x] Módulo `dialogflow-cx.js` con función `detectIntentCX()`
+  - [x] Usar `From` como sessionId
+  - [x] Manejar respuestas de Dialogflow
+  - [x] Logging de intents y parámetros
+  - [x] Fallback a lógica simple si no está configurado
+
+#### Pending (Usuario debe hacer)
+
+📖 **Seguir guía**: `docs/DIALOGFLOW_CX_SETUP_GUIDE.md` y `docs/NEXT_STEPS.md`
+
+- [ ] Crear agente de Dialogflow CX en Console
+- [ ] Crear entities personalizadas:
+  - [ ] `@product` (frutas y verduras)
+  - [ ] `@unit` (kilos, gramos, unidades)
+- [ ] Configurar intents:
+  - [ ] Intent: `greeting`
+  - [ ] Intent: `start_order`
+  - [ ] Intent: `add_product` (con parámetros)
+  - [ ] Intent: `add_more`
+  - [ ] Intent: `finish_order`
+  - [ ] Intent: `confirm_yes`
+  - [ ] Intent: `confirm_no`
+- [ ] Crear flows:
+  - [ ] Greeting Flow
+  - [ ] Order Flow (tomar pedidos)
+  - [ ] Confirmation Flow (confirmar)
+  - [ ] End Flow (finalizar)
+- [ ] Configurar pages y routes
+- [ ] Probar en simulator de Dialogflow
 - [ ] Crear Service Account en GCP
-- [ ] Asignar rol `roles/dialogflow.client`
+- [ ] Asignar rol `Dialogflow API Client`
 - [ ] Descargar credenciales JSON
-- [ ] Instalar SDK: `@google-cloud/dialogflow`
-- [ ] Integrar código en backend:
-  - [ ] Función `detectIntent()`
-  - [ ] Usar `From` como sessionId
-  - [ ] Manejar respuestas de Dialogflow
-  - [ ] Logging de intents y parámetros
+- [ ] Configurar variables de entorno en `.env`
 - [ ] Probar conversaciones en WhatsApp
 - [ ] Ajustar training phrases según feedback
 
