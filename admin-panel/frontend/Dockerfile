@@ -1,6 +1,7 @@
 # Build stage
 FROM node:20-slim AS builder
 
+# Force rebuild - Updated 2026-01-11
 WORKDIR /app
 
 # Copy package files
@@ -13,7 +14,7 @@ RUN npm ci
 COPY . .
 
 # Build the application
-RUN npm run build
+RUN npm run build && ls -lh dist/assets/
 
 # Production stage
 FROM nginx:alpine
