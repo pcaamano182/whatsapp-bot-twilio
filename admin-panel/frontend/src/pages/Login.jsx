@@ -18,64 +18,55 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-
-      <div className="relative w-full max-w-md">
-        {/* Logo/Header Card */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg mb-4">
-            <ShoppingCart className="w-9 h-9 text-white" />
+    <div className="login-container">
+      <div className="login-card-wrapper">
+        {/* Logo/Header */}
+        <div className="login-header">
+          <div className="login-logo">
+            <ShoppingCart size={36} color="white" />
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-            FreshMarket
-          </h1>
-          <p className="text-gray-600 mt-2 font-medium">Panel de Administración</p>
+          <h1 className="login-title">FreshMarket</h1>
+          <p className="login-subtitle">Panel de Administración</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="login-card">
+          <form onSubmit={handleSubmit} className="login-form">
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-start space-x-3">
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <span className="text-sm text-red-700">{error}</span>
+              <div className="alert">
+                <AlertCircle size={20} />
+                <span className="alert-text">{error}</span>
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Email
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail className="w-5 h-5 text-gray-400" />
+            <div className="form-group">
+              <label className="form-label">Email</label>
+              <div className="input-wrapper">
+                <div className="input-icon">
+                  <Mail size={20} />
                 </div>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                  className="form-input"
                   placeholder="admin@freshmarket.com"
                   required
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Contraseña
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="w-5 h-5 text-gray-400" />
+            <div className="form-group">
+              <label className="form-label">Contraseña</label>
+              <div className="input-wrapper">
+                <div className="input-icon">
+                  <Lock size={20} />
                 </div>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                  className="form-input"
                   placeholder="••••••••"
                   required
                 />
@@ -85,33 +76,33 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="btn-primary"
             >
               {isLoading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                <>
+                  <div className="spinner" style={{ width: '1.25rem', height: '1.25rem', borderWidth: '2px' }}></div>
                   <span>Iniciando sesión...</span>
-                </div>
+                </>
               ) : (
                 <>
                   <span>Iniciar Sesión</span>
-                  <ArrowRight className="w-5 h-5" />
+                  <ArrowRight size={20} />
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-gray-100">
-            <p className="text-xs text-gray-500 text-center">
+          <div className="login-footer">
+            <p className="login-hint">
               Credenciales de prueba:
               <br />
-              <span className="font-mono text-gray-700">admin@freshmarket.com</span> / <span className="font-mono text-gray-700">admin123</span>
+              <span className="login-hint-code">admin@freshmarket.com</span> / <span className="login-hint-code">admin123</span>
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-sm text-gray-600 mt-6">
+        <p className="copyright">
           © 2026 FreshMarket. Todos los derechos reservados.
         </p>
       </div>

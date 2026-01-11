@@ -16,7 +16,6 @@ import {
 
 export default function Orders() {
   const [statusFilter, setStatusFilter] = useState('');
-  const [expandedOrder, setExpandedOrder] = useState(null);
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -72,29 +71,29 @@ export default function Orders() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-500 border-t-transparent"></div>
+      <div className="loading-container">
+        <div className="spinner"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="orders-header">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Pedidos</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="page-title">Pedidos</h1>
+          <p className="page-subtitle">
             {data?.length || 0} pedido{data?.length !== 1 ? 's' : ''} encontrado{data?.length !== 1 ? 's' : ''}
           </p>
         </div>
 
-        <div className="flex items-center space-x-2 bg-white rounded-lg border border-gray-200 px-4 py-2 shadow-sm">
-          <Filter className="w-5 h-5 text-gray-400" />
+        <div className="filter-container">
+          <Filter size={20} />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="border-none focus:outline-none focus:ring-0 text-sm font-medium text-gray-700 bg-transparent cursor-pointer"
+            className="filter-select"
           >
             <option value="">Todos los estados</option>
             <option value="pending">Pendiente</option>
@@ -104,83 +103,78 @@ export default function Orders() {
             <option value="delivered">Entregado</option>
             <option value="cancelled">Cancelado</option>
           </select>
-          <ChevronDown className="w-4 h-4 text-gray-400" />
+          <ChevronDown size={16} />
         </div>
       </div>
 
       {/* Orders Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="orders-grid">
         {data?.map((order) => (
-          <div
-            key={order.orderId}
-            className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200"
-          >
+          <div key={order.orderId} className="order-card">
             {/* Card Header */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                    <Package className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium">Pedido</p>
-                    <p className="font-mono text-sm font-bold text-gray-900">#{order.orderId}</p>
-                  </div>
+            <div className="order-card-header">
+              <div className="order-id-container">
+                <div className="order-icon">
+                  <Package size={20} color="#16a34a" />
                 </div>
-                <Badge status={order.status}>{statusLabels[order.status]}</Badge>
+                <div>
+                  <p className="order-id-label">Pedido</p>
+                  <p className="order-id-value">#{order.orderId}</p>
+                </div>
               </div>
+              <Badge status={order.status}>{statusLabels[order.status]}</Badge>
             </div>
 
             {/* Card Body */}
-            <div className="p-6 space-y-4">
+            <div className="order-card-body">
               {/* Customer Info */}
-              <div className="space-y-2">
-                <div className="flex items-center space-x-3 text-gray-700">
-                  <User className="w-4 h-4 text-gray-400" />
-                  <span className="font-medium">{order.customerName || 'Cliente'}</span>
+              <div className="customer-info">
+                <div className="info-row">
+                  <User size={16} />
+                  <span className="info-row-value">{order.customerName || 'Cliente'}</span>
                 </div>
-                <div className="flex items-center space-x-3 text-gray-600">
-                  <Phone className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm">{order.customerPhone}</span>
+                <div className="info-row">
+                  <Phone size={16} />
+                  <span className="info-row-secondary">{order.customerPhone}</span>
                 </div>
                 {order.deliveryAddress && (
-                  <div className="flex items-start space-x-3 text-gray-600">
-                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-                    <span className="text-sm">{order.deliveryAddress}</span>
+                  <div className="info-row">
+                    <MapPin size={16} />
+                    <span className="info-row-secondary">{order.deliveryAddress}</span>
                   </div>
                 )}
               </div>
 
               {/* Order Details */}
-              <div className="border-t border-gray-100 pt-4">
-                <p className="text-sm font-semibold text-gray-700 mb-3">Items del Pedido:</p>
-                <div className="space-y-2">
+              <div className="order-items">
+                <p className="items-label">Items del Pedido:</p>
+                <div className="items-list">
                   {order.items?.map((item, i) => (
-                    <div key={i} className="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2">
-                      <span className="text-sm text-gray-700">{item.product}</span>
-                      <span className="text-sm font-semibold text-gray-900">{item.quantity}kg</span>
+                    <div key={i} className="item-row">
+                      <span className="item-name">{item.product}</span>
+                      <span className="item-quantity">{item.quantity}kg</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  <span className="text-xs text-gray-500">{formatDate(order.createdAt)}</span>
+              <div className="order-footer">
+                <div className="order-date">
+                  <Calendar size={16} />
+                  <span className="order-date-text">{formatDate(order.createdAt)}</span>
                 </div>
-                <div className="flex items-center space-x-2 bg-green-50 px-3 py-1.5 rounded-lg">
-                  <DollarSign className="w-4 h-4 text-green-600" />
-                  <span className="font-bold text-green-700">${order.total}</span>
+                <div className="order-total">
+                  <DollarSign size={16} />
+                  <span className="order-total-amount">${order.total}</span>
                 </div>
               </div>
 
               {/* Status Actions */}
               {order.canEdit && (
-                <div className="border-t border-gray-100 pt-4">
-                  <p className="text-xs font-medium text-gray-600 mb-2">Actualizar Estado:</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="order-actions">
+                  <p className="actions-label">Actualizar Estado:</p>
+                  <div className="actions-grid">
                     {statusOptions
                       .filter((opt) => !opt.disabled.includes(order.status) && opt.value !== order.status)
                       .map((opt) => (
@@ -188,10 +182,10 @@ export default function Orders() {
                           key={opt.value}
                           onClick={() => handleStatusChange(order.orderId, order.status, opt.value)}
                           disabled={updateStatusMutation.isLoading}
-                          className="px-3 py-2 text-xs font-medium rounded-lg border border-gray-200 hover:border-green-500 hover:bg-green-50 hover:text-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="action-btn"
                         >
                           {updateStatusMutation.isLoading ? (
-                            <RefreshCw className="w-3 h-3 animate-spin mx-auto" />
+                            <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite', margin: '0 auto' }} />
                           ) : (
                             opt.label
                           )}
@@ -207,10 +201,10 @@ export default function Orders() {
 
       {/* Empty State */}
       {(!data || data.length === 0) && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-          <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay pedidos</h3>
-          <p className="text-gray-500">
+        <div className="empty-state">
+          <Package size={64} style={{ margin: '0 auto 1rem' }} />
+          <h3 className="empty-state-title">No hay pedidos</h3>
+          <p className="empty-state-text">
             {statusFilter
               ? `No hay pedidos con el estado "${statusLabels[statusFilter]}"`
               : 'No hay pedidos para mostrar en este momento'}
