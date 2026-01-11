@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import twilio from 'twilio';
 import { detectIntentCX, isDialogflowConfigured } from './dialogflow-cx.js';
+import { createPaymentLink, isMercadoPagoConfigured } from './mercadopago.js';
 
 dotenv.config();
 
@@ -128,9 +129,154 @@ app.get('/', (req, res) => {
     phase: 'POC Local',
     endpoints: {
       webhook: '/webhook/whatsapp',
-      health: '/health'
+      health: '/health',
+      createPayment: '/api/create-payment',
+      paymentWebhook: '/webhook/mercadopago'
     }
   });
+});
+
+/**
+ * Endpoint para crear link de pago de Mercado Pago
+ * POST /api/create-payment
+ */
+app.post('/api/create-payment', async (req, res) => {
+  try {
+    const { orderId, items, total, deliveryFee, customer, deliveryAddress } = req.body;
+
+    console.log('💳 Creando link de pago para pedido:', orderId);
+
+    // Si Mercado Pago no está configurado, continuar sin link de pago
+    if (!isMercadoPagoConfigured()) {
+      console.log('⚠️  Mercado Pago no configurado - pedido procesado sin pago online');
+      return res.json({
+        success: true,
+        paymentUrl: null,
+        paymentUnavailable: true,
+        message: 'Pedido confirmado. Pago pendiente (contactaremos para coordinar pago)',
+        orderId
+      });
+    }
+
+    // Intentar crear link de pago
+    try {
+      const paymentLink = await createPaymentLink({
+        orderId,
+        items,
+        total,
+        deliveryFee: deliveryFee || 0,
+        customer,
+        deliveryAddress
+      });
+
+      res.json({
+        success: true,
+        paymentUrl: paymentLink.paymentUrl,
+        preferenceId: paymentLink.preferenceId,
+        paymentUnavailable: false,
+        orderId
+      });
+
+    } catch (paymentError) {
+      // Si falla la creación del link, continuar sin pago online
+      console.error('❌ Error creando link de pago:', paymentError);
+      console.log('⚠️  Continuando pedido sin pago online');
+
+      res.json({
+        success: true,
+        paymentUrl: null,
+        paymentUnavailable: true,
+        message: 'Pedido confirmado. El sistema de pago no está disponible temporalmente. Te contactaremos para coordinar el pago.',
+        orderId,
+        error: paymentError.message
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Error procesando pedido:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error al procesar pedido',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Webhook de Mercado Pago para notificaciones de pago
+ * POST /webhook/mercadopago
+ */
+app.post('/webhook/mercadopago', async (req, res) => {
+  try {
+    console.log('💰 Notificación de Mercado Pago recibida');
+    console.log('   Type:', req.query.type);
+    console.log('   Data:', JSON.stringify(req.body, null, 2));
+
+    const { type, data } = req.query;
+
+    if (type === 'payment') {
+      const paymentId = data?.id;
+      console.log(`   Payment ID: ${paymentId}`);
+
+      // Aquí podrías:
+      // 1. Verificar el estado del pago
+      // 2. Actualizar el pedido en tu base de datos
+      // 3. Enviar notificación al cliente por WhatsApp
+
+      // TODO: Implementar lógica de actualización de pedido
+    }
+
+    // Mercado Pago requiere respuesta 200 OK
+    res.status(200).send('OK');
+
+  } catch (error) {
+    console.error('❌ Error procesando webhook de Mercado Pago:', error);
+    res.status(200).send('OK'); // Siempre responder 200 para evitar reintentos
+  }
+});
+
+/**
+ * Páginas de redirección después del pago
+ */
+app.get('/payment/success', (req, res) => {
+  const { payment_id, external_reference } = req.query;
+  res.send(`
+    <html>
+      <head><title>Pago Exitoso</title></head>
+      <body style="font-family: Arial; text-align: center; padding: 50px;">
+        <h1>✅ ¡Pago Exitoso!</h1>
+        <p>Tu pedido #${external_reference} ha sido confirmado.</p>
+        <p>ID de pago: ${payment_id}</p>
+        <p>Te contactaremos pronto por WhatsApp.</p>
+      </body>
+    </html>
+  `);
+});
+
+app.get('/payment/failure', (req, res) => {
+  res.send(`
+    <html>
+      <head><title>Pago Fallido</title></head>
+      <body style="font-family: Arial; text-align: center; padding: 50px;">
+        <h1>❌ Pago Fallido</h1>
+        <p>Hubo un problema con tu pago.</p>
+        <p>Por favor, intenta nuevamente.</p>
+      </body>
+    </html>
+  `);
+});
+
+app.get('/payment/pending', (req, res) => {
+  res.send(`
+    <html>
+      <head><title>Pago Pendiente</title></head>
+      <body style="font-family: Arial; text-align: center; padding: 50px;">
+        <h1>⏳ Pago Pendiente</h1>
+        <p>Tu pago está siendo procesado.</p>
+        <p>Te notificaremos cuando se confirme.</p>
+      </body>
+    </html>
+  `);
 });
 
 // Iniciar servidor

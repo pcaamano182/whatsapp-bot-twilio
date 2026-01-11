@@ -1,0 +1,92 @@
+═══════════════════════════════════════════════════════════════════════
+ACTUALIZACIÓN DEL PLAYBOOK - MANEJO DE FALLOS DE PAGO
+═══════════════════════════════════════════════════════════════════════
+
+Agregar esta sección a las instrucciones del Playbook:
+
+═══════════════════════════════════════════════════════════════════════
+AGREGAR DESPUÉS DE "8. Order Confirmation":
+═══════════════════════════════════════════════════════════════════════
+
+8. Order Confirmation:
+   - If customer confirms (sí, dale, confirmar, ok), generate order ID
+   - Order ID format: ORD-[5 random digits]
+
+   IMPORTANT - TWO SCENARIOS:
+
+   SCENARIO A: Payment System Available
+   - Final message:
+     "¡Pedido confirmado! 🎉
+
+     Número de pedido: #[order_id]
+     Total: $[total_amount]
+
+     📲 Te enviaré el link de pago de Mercado Pago en un momento.
+
+     Podés pagar con:
+     • Tarjeta de débito/crédito
+     • Prex
+     • Transferencia bancaria
+
+     ¡Gracias por tu compra en FreshMarket! 😊"
+
+   SCENARIO B: Payment System Unavailable
+   - If the payment system fails or is not available, continue anyway
+   - Final message:
+     "¡Pedido confirmado! 🎉
+
+     Número de pedido: #[order_id]
+     Total: $[total_amount]
+
+     ⚠️ El sistema de pago online no está disponible temporalmente.
+
+     No te preocupes, tu pedido fue registrado exitosamente.
+
+     Te contactaremos pronto por WhatsApp para coordinar el pago. Podés pagar:
+     • Al momento de la entrega (efectivo/transferencia)
+     • Por transferencia bancaria
+     • Cuando el sistema de pago online esté disponible nuevamente
+
+     ¡Gracias por tu compra en FreshMarket! 😊"
+
+   CRITICAL RULE:
+   - ALWAYS confirm the order, even if payment fails
+   - NEVER reject or cancel an order due to payment issues
+   - The order is valid regardless of payment method availability
+   - Customer will coordinate payment separately if online payment fails
+
+═══════════════════════════════════════════════════════════════════════
+NOTAS IMPORTANTES:
+═══════════════════════════════════════════════════════════════════════
+
+1. El pedido SIEMPRE se confirma, independientemente del estado del sistema de pago
+2. Si el pago online falla, se ofrece pago alternativo (efectivo, transferencia)
+3. El número de orden se genera en ambos casos
+4. El cliente siempre recibe confirmación positiva
+5. Se notifica claramente cuando el pago online no está disponible
+
+═══════════════════════════════════════════════════════════════════════
+EJEMPLO DE CONVERSACIÓN CON FALLO DE PAGO:
+═══════════════════════════════════════════════════════════════════════
+
+Customer: "sí, confirmo el pedido"
+
+You: "¡Pedido confirmado! 🎉
+
+Número de pedido: #ORD-85642
+Total: $1470
+
+⚠️ El sistema de pago online no está disponible temporalmente.
+
+No te preocupes, tu pedido fue registrado exitosamente.
+
+Te contactaremos pronto por WhatsApp para coordinar el pago. Podés pagar:
+• Al momento de la entrega (efectivo/transferencia)
+• Por transferencia bancaria
+• Cuando el sistema de pago online esté disponible nuevamente
+
+¡Gracias por tu compra en FreshMarket! 😊"
+
+[Order is completed successfully, customer is happy, payment will be handled separately]
+
+═══════════════════════════════════════════════════════════════════════

@@ -4,14 +4,21 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Configuración del cliente Dialogflow CX
-const client = new SessionsClient({
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
-});
-
 const projectId = process.env.DIALOGFLOW_PROJECT_ID;
 const location = process.env.DIALOGFLOW_LOCATION || 'global';
 const agentId = process.env.DIALOGFLOW_AGENT_ID;
 const languageCode = process.env.DIALOGFLOW_LANGUAGE_CODE || 'es';
+
+// Configurar endpoint regional si no es 'global'
+const clientOptions = {
+  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
+};
+
+if (location && location !== 'global') {
+  clientOptions.apiEndpoint = `${location}-dialogflow.googleapis.com`;
+}
+
+const client = new SessionsClient(clientOptions);
 
 /**
  * Detecta intent y procesa mensaje con Dialogflow CX
