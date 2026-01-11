@@ -1055,6 +1055,8 @@ body {
   display: flex;
   flex-direction: column;
   background: white;
+  flex: 1;
+  min-height: 0; /* Important for flex children to enable scrolling */
 }
 
 .conversation-header {
