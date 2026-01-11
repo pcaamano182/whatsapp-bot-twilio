@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 5000;
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
-  'https://freshmarket-admin-frontend-693944688614.us-central1.run.app'
+  'https://freshmarket-admin-ui-693944688614.us-central1.run.app'
 ];
 
 app.use(cors({
