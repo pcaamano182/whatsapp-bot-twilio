@@ -13,6 +13,9 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Set environment variables for build
+ENV VITE_API_URL=https://freshmarket-admin-api-693944688614.us-central1.run.app/api
+
 # Build the application
 RUN npm run build && ls -lh dist/assets/
 
