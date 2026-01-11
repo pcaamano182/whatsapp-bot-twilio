@@ -16,6 +16,7 @@ import {
   formatOrderForCustomer,
   OrderStatus
 } from './orders.js';
+import { saveMessage, linkOrderToConversation } from './conversations.js';
 
 dotenv.config();
 
@@ -57,6 +58,14 @@ app.post('/webhook/whatsapp', async (req, res) => {
     console.log(`   WhatsApp ID: ${whatsappId}`);
     console.log(`   Mensaje: ${messageBody}`);
 
+    // Guardar mensaje entrante en Firestore
+    await saveMessage({
+      customerPhone: senderNumber,
+      customerName: profileName || 'Cliente',
+      text: messageBody,
+      direction: 'incoming'
+    });
+
     // Crear respuesta TwiML
     const twiml = new twilio.twiml.MessagingResponse();
     let responseMessage;
@@ -89,6 +98,14 @@ app.post('/webhook/whatsapp', async (req, res) => {
     }
 
     twiml.message(responseMessage);
+
+    // Guardar mensaje saliente en Firestore
+    await saveMessage({
+      customerPhone: senderNumber,
+      customerName: profileName || 'Cliente',
+      text: responseMessage,
+      direction: 'outgoing'
+    });
 
     // Enviar respuesta en formato XML
     res.type('text/xml');
@@ -255,6 +272,11 @@ app.post('/api/orders', async (req, res) => {
     console.log('📝 Creando nuevo pedido para:', orderData.customerPhone);
 
     const order = await createOrder(orderData);
+
+    // Asociar pedido a conversación
+    if (order && order.orderId) {
+      await linkOrderToConversation(orderData.customerPhone, order.orderId);
+    }
 
     res.json({
       success: true,
