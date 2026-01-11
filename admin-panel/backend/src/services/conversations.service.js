@@ -193,8 +193,11 @@ export async function addMessage(conversationId, messageData) {
 
   // Update conversation message count and last message
   const conversationRef = conversationsCollection.doc(conversationId);
+  const conversationSnapshot = await conversationRef.get();
+  const currentCount = conversationSnapshot.data()?.messageCount || 0;
+
   await conversationRef.update({
-    messageCount: db.FieldValue.increment(1),
+    messageCount: currentCount + 1,
     lastMessage: text,
     lastMessageDirection: direction,
     lastMessageAt: new Date(),
