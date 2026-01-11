@@ -7,6 +7,9 @@ servers:
   - url: https://whatsapp-bot-693944688614.us-central1.run.app
     description: Production server
 
+security:
+  - ApiKeyAuth: []
+
 paths:
   /api/orders:
     post:
@@ -275,6 +278,13 @@ paths:
                     description: URL del link de pago
 
 components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key para autenticación
+
   schemas:
     Order:
       type: object

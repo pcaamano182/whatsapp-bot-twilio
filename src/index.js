@@ -39,6 +39,28 @@ app.use((req, res, next) => {
   next();
 });
 
+// Middleware de autenticación para endpoints de API (solo para /api/*)
+const apiKeyAuth = (req, res, next) => {
+  // Solo aplicar a rutas /api/* (excepto webhooks)
+  if (!req.path.startsWith('/api/')) {
+    return next();
+  }
+
+  const apiKey = req.headers['x-api-key'];
+  const validApiKey = process.env.API_KEY || 'eBx0D7aW0DIxNUKVs5JZGSS45Dq/TsNxeQ4vWF518MQ=';
+
+  if (apiKey && apiKey === validApiKey) {
+    next();
+  } else {
+    res.status(401).json({
+      success: false,
+      error: 'Unauthorized - Invalid or missing API key'
+    });
+  }
+};
+
+app.use(apiKeyAuth);
+
 /**
  * Webhook principal de WhatsApp
  * Recibe mensajes desde Twilio WhatsApp Sandbox
