@@ -3,11 +3,24 @@ import dotenv from 'dotenv';
 import twilio from 'twilio';
 import { detectIntentCX, isDialogflowConfigured } from './dialogflow-cx.js';
 import { createPaymentLink, isMercadoPagoConfigured } from './mercadopago.js';
+import {
+  createOrder,
+  getOrder,
+  getCustomerOrders,
+  getActiveOrder,
+  updateOrderItems,
+  updateOrderStatus,
+  confirmOrder,
+  cancelOrder,
+  updatePaymentInfo,
+  formatOrderForCustomer,
+  OrderStatus
+} from './orders.js';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 // Middleware para parsear application/x-www-form-urlencoded (formato de Twilio)
 app.use(express.urlencoded({ extended: false }));
@@ -218,12 +231,9 @@ app.post('/webhook/mercadopago', async (req, res) => {
       const paymentId = data?.id;
       console.log(`   Payment ID: ${paymentId}`);
 
-      // Aquí podrías:
-      // 1. Verificar el estado del pago
-      // 2. Actualizar el pedido en tu base de datos
-      // 3. Enviar notificación al cliente por WhatsApp
-
-      // TODO: Implementar lógica de actualización de pedido
+      // TODO: Verificar el estado del pago con Mercado Pago API
+      // TODO: Actualizar el estado de pago en Firestore
+      // TODO: Enviar notificación al cliente por WhatsApp
     }
 
     // Mercado Pago requiere respuesta 200 OK
@@ -232,6 +242,232 @@ app.post('/webhook/mercadopago', async (req, res) => {
   } catch (error) {
     console.error('❌ Error procesando webhook de Mercado Pago:', error);
     res.status(200).send('OK'); // Siempre responder 200 para evitar reintentos
+  }
+});
+
+/**
+ * Crear un nuevo pedido
+ * POST /api/orders
+ */
+app.post('/api/orders', async (req, res) => {
+  try {
+    const orderData = req.body;
+    console.log('📝 Creando nuevo pedido para:', orderData.customerPhone);
+
+    const order = await createOrder(orderData);
+
+    res.json({
+      success: true,
+      order
+    });
+
+  } catch (error) {
+    console.error('❌ Error creando pedido:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Obtener un pedido por ID
+ * GET /api/orders/:orderId
+ */
+app.get('/api/orders/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    console.log('🔍 Buscando pedido:', orderId);
+
+    const order = await getOrder(orderId);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Pedido no encontrado'
+      });
+    }
+
+    res.json({
+      success: true,
+      order
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo pedido:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Obtener pedidos de un cliente
+ * GET /api/orders/customer/:phone
+ */
+app.get('/api/orders/customer/:phone', async (req, res) => {
+  try {
+    const { phone } = req.params;
+    const limit = parseInt(req.query.limit) || 10;
+
+    console.log('🔍 Buscando pedidos del cliente:', phone);
+
+    const orders = await getCustomerOrders(phone, limit);
+
+    res.json({
+      success: true,
+      count: orders.length,
+      orders
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo pedidos del cliente:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Obtener pedido activo de un cliente
+ * GET /api/orders/customer/:phone/active
+ */
+app.get('/api/orders/customer/:phone/active', async (req, res) => {
+  try {
+    const { phone } = req.params;
+    console.log('🔍 Buscando pedido activo del cliente:', phone);
+
+    const order = await getActiveOrder(phone);
+
+    if (!order) {
+      return res.json({
+        success: true,
+        hasActiveOrder: false,
+        order: null
+      });
+    }
+
+    res.json({
+      success: true,
+      hasActiveOrder: true,
+      order,
+      formatted: formatOrderForCustomer(order)
+    });
+
+  } catch (error) {
+    console.error('❌ Error obteniendo pedido activo:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Actualizar items de un pedido
+ * PUT /api/orders/:orderId/items
+ */
+app.put('/api/orders/:orderId/items', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { items, total } = req.body;
+
+    console.log('✏️ Actualizando items del pedido:', orderId);
+
+    const order = await updateOrderItems(orderId, items, total);
+
+    res.json({
+      success: true,
+      order
+    });
+
+  } catch (error) {
+    console.error('❌ Error actualizando items:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Actualizar estado de un pedido
+ * PUT /api/orders/:orderId/status
+ */
+app.put('/api/orders/:orderId/status', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    console.log(`🔄 Actualizando estado del pedido ${orderId} a:`, status);
+
+    const order = await updateOrderStatus(orderId, status);
+
+    res.json({
+      success: true,
+      order
+    });
+
+  } catch (error) {
+    console.error('❌ Error actualizando estado:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Confirmar un pedido
+ * POST /api/orders/:orderId/confirm
+ */
+app.post('/api/orders/:orderId/confirm', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    console.log('✅ Confirmando pedido:', orderId);
+
+    const order = await confirmOrder(orderId);
+
+    res.json({
+      success: true,
+      order
+    });
+
+  } catch (error) {
+    console.error('❌ Error confirmando pedido:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Cancelar un pedido
+ * POST /api/orders/:orderId/cancel
+ */
+app.post('/api/orders/:orderId/cancel', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    console.log('❌ Cancelando pedido:', orderId);
+
+    const order = await cancelOrder(orderId);
+
+    res.json({
+      success: true,
+      order
+    });
+
+  } catch (error) {
+    console.error('❌ Error cancelando pedido:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 

@@ -10,9 +10,20 @@ const agentId = process.env.DIALOGFLOW_AGENT_ID;
 const languageCode = process.env.DIALOGFLOW_LANGUAGE_CODE || 'es';
 
 // Configurar endpoint regional si no es 'global'
-const clientOptions = {
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
-};
+const clientOptions = {};
+
+// Si las credenciales están como variable de entorno (Cloud Run), parsearlas
+if (process.env.DIALOGFLOW_CREDENTIALS) {
+  try {
+    const credentials = JSON.parse(process.env.DIALOGFLOW_CREDENTIALS);
+    clientOptions.credentials = credentials;
+  } catch (error) {
+    console.error('❌ Error parseando DIALOGFLOW_CREDENTIALS:', error);
+  }
+} else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  // Si es un archivo, usarlo (desarrollo local)
+  clientOptions.keyFilename = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+}
 
 if (location && location !== 'global') {
   clientOptions.apiEndpoint = `${location}-dialogflow.googleapis.com`;
@@ -131,8 +142,9 @@ export function getSessionPath(sessionId) {
  * @returns {boolean} true si está configurado
  */
 export function isDialogflowConfigured() {
+  const hasCredentials = process.env.DIALOGFLOW_CREDENTIALS || process.env.GOOGLE_APPLICATION_CREDENTIALS;
   const required = [
-    process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    hasCredentials,
     process.env.DIALOGFLOW_PROJECT_ID,
     process.env.DIALOGFLOW_AGENT_ID,
   ];
@@ -142,8 +154,8 @@ export function isDialogflowConfigured() {
   if (!isConfigured) {
     console.warn('⚠️  Dialogflow CX no está completamente configurado');
     console.warn('   Variables faltantes en .env:');
-    if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-      console.warn('   - GOOGLE_APPLICATION_CREDENTIALS');
+    if (!hasCredentials) {
+      console.warn('   - DIALOGFLOW_CREDENTIALS o GOOGLE_APPLICATION_CREDENTIALS');
     }
     if (!process.env.DIALOGFLOW_PROJECT_ID) {
       console.warn('   - DIALOGFLOW_PROJECT_ID');

@@ -1,0 +1,12 @@
+{
+  "name": "budget-enforcer",
+  "version": "1.0.0",
+  "description": "Cloud Function to disable billing when budget is exceeded",
+  "main": "index.js",
+  "dependencies": {
+    "@google-cloud/billing": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
