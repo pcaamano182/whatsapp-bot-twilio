@@ -1,4 +1,4 @@
-import { db } from '../config/firestore.js';
+import db from '../config/firestore.js';
 
 const conversationsCollection = db.collection('conversations');
 const messagesCollection = db.collection('messages');
