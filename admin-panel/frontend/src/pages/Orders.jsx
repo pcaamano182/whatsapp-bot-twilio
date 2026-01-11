@@ -24,6 +24,7 @@ export default function Orders() {
       const response = await ordersAPI.getAll({ status: statusFilter || undefined });
       return response.data.orders;
     },
+    refetchInterval: 3000, // Auto-refresh every 3 seconds
   });
 
   const updateStatusMutation = useMutation({

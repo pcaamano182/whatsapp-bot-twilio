@@ -10,6 +10,7 @@ export default function Dashboard() {
       const response = await ordersAPI.getStats();
       return response.data.stats;
     },
+    refetchInterval: 3000, // Auto-refresh every 3 seconds
   });
 
   if (isLoading) {

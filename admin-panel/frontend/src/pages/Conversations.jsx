@@ -22,6 +22,7 @@ export default function Conversations() {
       const response = await conversationsAPI.getAll();
       return response.data.conversations;
     },
+    refetchInterval: 3000, // Auto-refresh every 3 seconds
   });
 
   const { data: messages, isLoading: isLoadingMessages } = useQuery({
@@ -32,6 +33,7 @@ export default function Conversations() {
       return response.data.messages;
     },
     enabled: !!selectedConversation?.id,
+    refetchInterval: 3000, // Auto-refresh every 3 seconds
   });
 
   // Scroll automático al último mensaje cuando se cargan los mensajes
