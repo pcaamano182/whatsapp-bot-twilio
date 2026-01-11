@@ -1,0 +1,341 @@
+openapi: 3.0.0
+info:
+  title: FreshMarket Orders API
+  description: API para gestión de pedidos de FreshMarket
+  version: 1.0.0
+servers:
+  - url: https://whatsapp-bot-693944688614.us-central1.run.app
+    description: Production server
+
+paths:
+  /api/orders:
+    post:
+      operationId: createOrder
+      summary: Crear un nuevo pedido
+      description: Crea un nuevo pedido para un cliente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - customerPhone
+                - customerName
+              properties:
+                customerPhone:
+                  type: string
+                  description: Número de teléfono del cliente en formato whatsapp:+59899123456
+                  example: "whatsapp:+59899123456"
+                customerName:
+                  type: string
+                  description: Nombre del cliente
+                  example: "Juan Pérez"
+                deliveryMethod:
+                  type: string
+                  enum: [pickup, delivery]
+                  default: pickup
+                  description: Método de entrega
+                items:
+                  type: array
+                  description: Lista de productos (opcional, se puede agregar después)
+                  items:
+                    type: object
+                    properties:
+                      product:
+                        type: string
+                      quantity:
+                        type: number
+                      pricePerKg:
+                        type: number
+      responses:
+        '200':
+          description: Pedido creado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  order:
+                    $ref: '#/components/schemas/Order'
+
+  /api/orders/customer/{phone}/active:
+    get:
+      operationId: getActiveOrder
+      summary: Obtener pedido activo del cliente
+      description: Obtiene el pedido activo (pending o processing) de un cliente
+      parameters:
+        - name: phone
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Número de teléfono en formato whatsapp:+59899123456
+          example: "whatsapp:+59899123456"
+      responses:
+        '200':
+          description: Pedido activo encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  order:
+                    $ref: '#/components/schemas/Order'
+
+  /api/orders/customer/{phone}:
+    get:
+      operationId: getCustomerOrders
+      summary: Obtener historial de pedidos del cliente
+      description: Obtiene todos los pedidos de un cliente
+      parameters:
+        - name: phone
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Número de teléfono en formato whatsapp:+59899123456
+      responses:
+        '200':
+          description: Lista de pedidos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+
+  /api/orders/{orderId}/items:
+    put:
+      operationId: updateOrderItems
+      summary: Actualizar items del pedido
+      description: Actualiza o agrega items a un pedido existente
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del pedido
+          example: "ORD-20260111-001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                items:
+                  type: array
+                  description: Lista de productos a agregar/actualizar
+                  items:
+                    type: object
+                    required:
+                      - product
+                      - quantity
+                      - pricePerKg
+                    properties:
+                      product:
+                        type: string
+                        description: Nombre del producto
+                        example: "manzanas"
+                      quantity:
+                        type: number
+                        description: Cantidad en kg
+                        example: 2
+                      pricePerKg:
+                        type: number
+                        description: Precio por kg en pesos uruguayos
+                        example: 180
+      responses:
+        '200':
+          description: Items actualizados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  order:
+                    $ref: '#/components/schemas/Order'
+
+  /api/orders/{orderId}/confirm:
+    post:
+      operationId: confirmOrder
+      summary: Confirmar pedido
+      description: Confirma un pedido y lo marca como listo para procesar
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del pedido
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deliveryMethod:
+                  type: string
+                  enum: [pickup, delivery]
+                  description: Método de entrega
+                deliveryAddress:
+                  type: string
+                  description: Dirección de entrega (requerido si deliveryMethod es delivery)
+      responses:
+        '200':
+          description: Pedido confirmado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  order:
+                    $ref: '#/components/schemas/Order'
+
+  /api/orders/{orderId}/cancel:
+    post:
+      operationId: cancelOrder
+      summary: Cancelar pedido
+      description: Cancela un pedido existente
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del pedido
+      responses:
+        '200':
+          description: Pedido cancelado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  order:
+                    $ref: '#/components/schemas/Order'
+
+  /api/create-payment:
+    post:
+      operationId: createPaymentLink
+      summary: Crear link de pago de Mercado Pago
+      description: Genera un link de pago de Mercado Pago para un pedido
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - orderId
+                - amount
+                - description
+              properties:
+                orderId:
+                  type: string
+                  description: ID del pedido
+                amount:
+                  type: number
+                  description: Monto total en pesos uruguayos
+                description:
+                  type: string
+                  description: Descripción del pago
+      responses:
+        '200':
+          description: Link de pago creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  paymentUrl:
+                    type: string
+                    description: URL del link de pago
+
+components:
+  schemas:
+    Order:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: ID único del pedido
+          example: "ORD-20260111-001"
+        customerPhone:
+          type: string
+          description: Teléfono del cliente
+          example: "whatsapp:+59899123456"
+        customerName:
+          type: string
+          description: Nombre del cliente
+          example: "Juan Pérez"
+        items:
+          type: array
+          description: Lista de productos
+          items:
+            type: object
+            properties:
+              product:
+                type: string
+              quantity:
+                type: number
+              pricePerKg:
+                type: number
+              subtotal:
+                type: number
+        total:
+          type: number
+          description: Total del pedido en pesos uruguayos
+        deliveryMethod:
+          type: string
+          enum: [pickup, delivery]
+          description: Método de entrega
+        deliveryAddress:
+          type: string
+          description: Dirección de entrega
+          nullable: true
+        deliveryFee:
+          type: number
+          description: Costo de delivery
+        status:
+          type: string
+          enum: [pending, confirmed, processing, ready, delivered, cancelled]
+          description: Estado del pedido
+        paymentStatus:
+          type: string
+          enum: [pending, paid, failed]
+          description: Estado del pago
+        paymentUrl:
+          type: string
+          description: URL del link de pago
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha de creación
+        updatedAt:
+          type: string
+          format: date-time
+          description: Fecha de última actualización
