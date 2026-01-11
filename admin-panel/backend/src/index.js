@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes.js';
 import ordersRoutes from './routes/orders.routes.js';
+import conversationsRoutes from './routes/conversations.routes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { initializeDefaultAdmin } from './services/auth.service.js';
 
@@ -45,7 +46,8 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       auth: '/api/auth',
-      orders: '/api/orders'
+      orders: '/api/orders',
+      conversations: '/api/conversations'
     }
   });
 });
@@ -59,6 +61,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', ordersRoutes);
+app.use('/api/conversations', conversationsRoutes);
 
 // Error handling
 app.use(notFound);

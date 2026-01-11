@@ -50,3 +50,11 @@ export const ordersAPI = {
   getById: (id) => api.get(`/orders/${id}`),
   updateStatus: (id, status) => api.patch(`/orders/${id}/status`, { status }),
 };
+
+// Conversations API
+export const conversationsAPI = {
+  getAll: (params) => api.get('/conversations', { params }),
+  getStats: () => api.get('/conversations/stats'),
+  getMessages: (id, params) => api.get(`/conversations/${id}/messages`, { params }),
+  search: (q) => api.get('/conversations/search', { params: { q } }),
+};
