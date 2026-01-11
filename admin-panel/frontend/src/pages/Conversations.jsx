@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { conversationsAPI } from '../api/client';
 import {
@@ -14,6 +14,7 @@ import {
 export default function Conversations() {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const messagesEndRef = useRef(null);
 
   const { data: conversations, isLoading } = useQuery({
     queryKey: ['conversations'],
@@ -32,6 +33,13 @@ export default function Conversations() {
     },
     enabled: !!selectedConversation?.id,
   });
+
+  // Scroll automático al último mensaje cuando se cargan los mensajes
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   const formatDate = (timestamp) => {
     if (!timestamp) return 'N/A';
@@ -188,17 +196,20 @@ export default function Conversations() {
                     <div className="spinner"></div>
                   </div>
                 ) : messages && messages.length > 0 ? (
-                  messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`message ${message.direction === 'outgoing' ? 'message-outgoing' : 'message-incoming'}`}
-                    >
-                      <div className="message-bubble">
-                        <p className="message-text">{message.text}</p>
-                        <span className="message-time">{formatMessageTime(message.timestamp)}</span>
+                  <>
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`message ${message.direction === 'outgoing' ? 'message-outgoing' : 'message-incoming'}`}
+                      >
+                        <div className="message-bubble">
+                          <p className="message-text">{message.text}</p>
+                          <span className="message-time">{formatMessageTime(message.timestamp)}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                    <div ref={messagesEndRef} />
+                  </>
                 ) : (
                   <div className="empty-state-text" style={{ textAlign: 'center', padding: '2rem' }}>
                     No hay mensajes en esta conversación
