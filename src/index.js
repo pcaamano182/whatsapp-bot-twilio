@@ -17,6 +17,7 @@ import {
   OrderStatus
 } from './orders.js';
 import { saveMessage, linkOrderToConversation } from './conversations.js';
+import { handleDialogflowWebhook } from './dialogflow-webhook.js';
 
 dotenv.config();
 
@@ -231,6 +232,12 @@ app.post('/api/create-payment', async (req, res) => {
     });
   }
 });
+
+/**
+ * Webhook de Dialogflow CX para ejecutar acciones
+ * POST /webhook/dialogflow
+ */
+app.post('/webhook/dialogflow', handleDialogflowWebhook);
 
 /**
  * Webhook de Mercado Pago para notificaciones de pago
