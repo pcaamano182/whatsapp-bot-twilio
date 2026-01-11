@@ -23,6 +23,7 @@ export default function Conversations() {
       return response.data.conversations;
     },
     refetchInterval: 3000, // Auto-refresh every 3 seconds
+    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
   });
 
   const { data: messages, isLoading: isLoadingMessages } = useQuery({
@@ -34,6 +35,7 @@ export default function Conversations() {
     },
     enabled: !!selectedConversation?.id,
     refetchInterval: 3000, // Auto-refresh every 3 seconds
+    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
   });
 
   // Scroll automático al último mensaje cuando se cargan los mensajes

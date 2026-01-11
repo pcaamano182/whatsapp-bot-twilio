@@ -11,6 +11,7 @@ export default function Dashboard() {
       return response.data.stats;
     },
     refetchInterval: 3000, // Auto-refresh every 3 seconds
+    refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
   });
 
   if (isLoading) {
