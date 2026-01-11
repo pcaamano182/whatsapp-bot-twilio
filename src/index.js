@@ -477,10 +477,14 @@ app.put('/api/orders/:orderId/status', async (req, res) => {
 app.post('/api/orders/:orderId/confirm', async (req, res) => {
   try {
     const { orderId } = req.params;
+    const { deliveryMethod, deliveryAddress } = req.body;
 
     console.log('✅ Confirmando pedido:', orderId);
 
-    const order = await confirmOrder(orderId);
+    const order = await confirmOrder(orderId, {
+      deliveryMethod,
+      deliveryAddress
+    });
 
     res.json({
       success: true,

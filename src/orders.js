@@ -244,9 +244,19 @@ export async function updateOrderStatus(orderId, newStatus) {
  * @returns {Promise<Object>} Pedido actualizado
  */
 export async function updateOrderItems(orderId, newItems, newTotal) {
+  // Si no se proporciona total, calcularlo automáticamente
+  let calculatedTotal = newTotal;
+
+  if (calculatedTotal === undefined || calculatedTotal === null) {
+    calculatedTotal = newItems.reduce((sum, item) => {
+      const subtotal = item.quantity * item.pricePerKg;
+      return sum + subtotal;
+    }, 0);
+  }
+
   return await updateOrder(orderId, {
     items: newItems,
-    total: newTotal
+    total: calculatedTotal
   });
 }
 
@@ -262,10 +272,39 @@ export async function cancelOrder(orderId) {
 /**
  * Confirma un pedido (cliente acepta)
  * @param {string} orderId - ID del pedido
+ * @param {Object} deliveryInfo - Información de entrega (opcional)
+ * @param {string} deliveryInfo.deliveryMethod - Método de entrega ("pickup" o "delivery")
+ * @param {string} deliveryInfo.deliveryAddress - Dirección de entrega (si deliveryMethod es "delivery")
  * @returns {Promise<Object>} Pedido confirmado
  */
-export async function confirmOrder(orderId) {
-  return await updateOrderStatus(orderId, OrderStatus.CONFIRMED);
+export async function confirmOrder(orderId, deliveryInfo = {}) {
+  const updates = {
+    status: OrderStatus.CONFIRMED
+  };
+
+  // Si se proporciona información de entrega, agregarla
+  if (deliveryInfo.deliveryMethod) {
+    updates.deliveryMethod = deliveryInfo.deliveryMethod;
+
+    // Si es delivery, agregar la dirección y el costo
+    if (deliveryInfo.deliveryMethod === 'delivery') {
+      updates.deliveryAddress = deliveryInfo.deliveryAddress || '';
+      updates.deliveryFee = 500;
+
+      // Actualizar el total sumando el delivery fee
+      const orderRef = ordersCollection.doc(orderId);
+      const doc = await orderRef.get();
+      if (doc.exists) {
+        const currentOrder = doc.data();
+        updates.total = (currentOrder.total || 0) + 500;
+      }
+    } else {
+      // Pickup no tiene costo
+      updates.deliveryFee = 0;
+    }
+  }
+
+  return await updateOrder(orderId, updates);
 }
 
 /**
