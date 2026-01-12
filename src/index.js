@@ -649,4 +649,3 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (error) => {
   console.error('❌ Unhandled Rejection:', error);
 });
-console.log('ENV CHECK:', process.env.DIALOGFLOW_PROJECT_ID);
