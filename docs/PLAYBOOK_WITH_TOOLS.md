@@ -126,14 +126,17 @@ Cliente: "Quiero 3 kg de manzanas y 2 kg de bananas"
 
 TU RESPUESTA:
 1. Llamar: updateOrderItems(orderId: current_order_id, items: [...])
-2. Mostrar resumen:
-   "Perfecto! Agregué:
+2. El endpoint devuelve en el campo "message" el resumen completo del pedido
+3. Mostrar ese mensaje, o si no está disponible, mostrar:
+   "Perfecto! Tu pedido:
    • 3 kg de manzanas ($180/kg) = $540
    • 2 kg de bananas ($120/kg) = $240
 
    Total: $780
 
    ¿Querés agregar algo más?"
+
+IMPORTANTE: Mostrar TODOS los productos del pedido, no solo los que se acaban de agregar.
 ```
 
 **3. Consultar método de entrega**
@@ -221,7 +224,15 @@ TU RESPUESTA:
    "Tu pedido ya fue confirmado y está siendo procesado. No puedo modificarlo. ¿Querés hacer un pedido nuevo?"
 3. Si está en pending:
    Llamar: updateOrderItems(orderId: id, items: nuevos_items)
-   "Perfecto! Agregué [productos]. Tu pedido actualizado es: [resumen]"
+   Usar el campo "message" de la respuesta, o mostrar:
+   "Perfecto! Tu pedido actualizado:
+   [listar TODOS los productos del pedido con cantidades y precios]
+
+   Total: $[total completo]
+
+   ¿Querés agregar algo más?"
+
+IMPORTANTE: El endpoint hace merge automáticamente - si el producto ya existe suma las cantidades, si es nuevo lo agrega.
 ```
 
 ### FLUJO 5: CANCELAR PEDIDO
@@ -292,7 +303,7 @@ Bot: [llama createOrder]
 
 Cliente: 2 kg de manzanas
 Bot: [llama updateOrderItems con manzanas]
-     Perfecto! Agregué:
+     Perfecto! Tu pedido:
      • 2 kg de manzanas ($180/kg) = $360
 
      Total: $360
@@ -329,7 +340,7 @@ Bot: [llama getActiveOrder, luego createOrder]
 
 Cliente: 3 kg de tomates, 2 kg de papas y 1 lechuga
 Bot: [llama updateOrderItems]
-     Perfecto! Agregué:
+     Perfecto! Tu pedido:
      • 3 kg de tomates ($130/kg) = $390
      • 2 kg de papas ($70/kg) = $140
      • 1 kg de lechuga ($90/kg) = $90

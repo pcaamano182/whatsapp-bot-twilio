@@ -31,24 +31,67 @@ const speechClient = new speech.SpeechClient(clientOptions);
  * @param {string} authToken - Twilio Auth Token
  * @returns {Promise<Buffer>} Buffer con el contenido del audio
  */
-export async function downloadAudioFromTwilio(mediaUrl, accountSid, authToken) {
-  try {
-    console.log('📥 Descargando audio desde Twilio:', mediaUrl);
+/**
+ * Helper para esperar un tiempo determinado
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-    const response = await axios.get(mediaUrl, {
-      auth: {
-        username: accountSid,
-        password: authToken
-      },
-      responseType: 'arraybuffer'
-    });
+export async function downloadAudioFromTwilio(mediaUrl, accountSid, authToken, retries = 3) {
+  let lastError;
 
-    console.log('✅ Audio descargado, tamaño:', response.data.length, 'bytes');
-    return Buffer.from(response.data);
-  } catch (error) {
-    console.error('❌ Error descargando audio:', error);
-    throw new Error('Failed to download audio from Twilio');
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`📥 Descargando audio desde Twilio (intento ${attempt}/${retries}):`, mediaUrl);
+      if (attempt === 1) {
+        console.log('   Account SID:', accountSid ? `${accountSid.substring(0, 10)}...` : 'NO CONFIGURADO');
+        console.log('   Auth Token:', authToken ? 'CONFIGURADO' : 'NO CONFIGURADO');
+      }
+
+      const response = await axios.get(mediaUrl, {
+        auth: {
+          username: accountSid,
+          password: authToken
+        },
+        responseType: 'arraybuffer',
+        timeout: 10000 // 10 segundos timeout
+      });
+
+      console.log('✅ Audio descargado, tamaño:', response.data.length, 'bytes');
+      return Buffer.from(response.data);
+    } catch (error) {
+      lastError = error;
+
+      console.error(`❌ Error descargando audio (intento ${attempt}/${retries}):`);
+      console.error('   Status:', error.response?.status);
+      console.error('   Status Text:', error.response?.statusText);
+      console.error('   Error Message:', error.message);
+
+      // Si es 404, el audio puede no estar disponible aún, reintentar
+      if (error.response?.status === 404) {
+        if (attempt < retries) {
+          const waitTime = attempt * 1000; // Esperar 1s, 2s, 3s...
+          console.log(`   ⏳ Audio no disponible aún. Reintentando en ${waitTime}ms...`);
+          await sleep(waitTime);
+          continue;
+        } else {
+          console.error('   ⚠️  El audio ya no está disponible en Twilio después de múltiples intentos');
+        }
+      } else if (error.response?.status === 401 || error.response?.status === 403) {
+        console.error('   ⚠️  Credenciales de Twilio incorrectas');
+        throw error; // No reintentar si las credenciales son incorrectas
+      }
+
+      // Si no es 404 o ya agotamos los intentos, lanzar error
+      if (attempt === retries) {
+        throw new Error(`Failed to download audio from Twilio after ${retries} attempts (${error.response?.status || error.message})`);
+      }
+    }
   }
+
+  // Esto no debería ocurrir, pero por seguridad
+  throw lastError;
 }
 
 /**

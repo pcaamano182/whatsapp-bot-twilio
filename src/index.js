@@ -516,9 +516,19 @@ app.put('/api/orders/:orderId/items', async (req, res) => {
 
     const order = await updateOrderItems(orderId, mergedItems, total);
 
+    // Formatear mensaje con el pedido completo
+    let itemsSummary = '';
+    order.items.forEach(item => {
+      const subtotal = item.quantity * item.pricePerKg;
+      itemsSummary += `• ${item.quantity} kg de ${item.product} ($${item.pricePerKg}/kg) = $${subtotal}\n`;
+    });
+
+    const message = `Perfecto! Tu pedido:\n\n${itemsSummary}\nTotal: $${order.total}\n\n¿Querés agregar algo más?`;
+
     res.json({
       success: true,
-      order
+      order,
+      message
     });
 
   } catch (error) {
