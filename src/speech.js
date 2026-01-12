@@ -111,8 +111,15 @@ export async function transcribeAudio(audioBuffer, contentType = 'audio/ogg') {
  * @returns {boolean}
  */
 export function isSpeechToTextConfigured() {
-  const hasCredentials = process.env.DIALOGFLOW_CREDENTIALS || process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  return !!hasCredentials;
+  // En Cloud Run (K_SERVICE existe), las credenciales se obtienen automáticamente del service account
+  const isCloudRun = !!process.env.K_SERVICE;
+  const hasCredentials = isCloudRun || process.env.DIALOGFLOW_CREDENTIALS || process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
+  console.log('🔍 [isSpeechToTextConfigured] Verificando configuración Speech-to-Text...');
+  console.log(`   Ejecutando en Cloud Run: ${isCloudRun}`);
+  console.log(`   Credenciales disponibles: ${hasCredentials}`);
+
+  return hasCredentials;
 }
 
 export default {
