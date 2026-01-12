@@ -145,8 +145,11 @@ app.post('/webhook/whatsapp', async (req, res) => {
       responseMessage = 'No pude escuchar bien el audio. ¿Podés escribir tu mensaje o enviarlo de nuevo?';
     } else if (isDialogflowConfigured()) {
       try {
-        // Usar número de WhatsApp como sessionId (mantiene contexto por usuario)
-        const sessionId = senderNumber; // "whatsapp:+59895262076"
+        // Usar número de WhatsApp como sessionId con timestamp para resetear sesiones
+        // Esto evita que el historial de conversación exceda el límite de tokens
+        // La sesión se resetea cada 30 minutos
+        const sessionTimestamp = Math.floor(Date.now() / (30 * 60 * 1000)); // 30 minutos
+        const sessionId = `${senderNumber}-${sessionTimestamp}`; // "whatsapp:+59895262076-12345"
 
         // Usar el texto transcrito si está disponible, si no el messageBody
         const textToProcess = transcribedText || messageBody;
@@ -157,14 +160,32 @@ app.post('/webhook/whatsapp', async (req, res) => {
         responseMessage = dialogflowResponse.text;
 
         console.log('🤖 Dialogflow CX:');
+        console.log(`   Session ID: ${sessionId}`);
         console.log(`   Intent: ${dialogflowResponse.intent}`);
         console.log(`   Confidence: ${dialogflowResponse.confidence}`);
         console.log(`   Response: ${responseMessage}`);
 
       } catch (dfError) {
         console.error('❌ Error con Dialogflow CX:', dfError);
-        // Fallback a lógica simple
-        responseMessage = getFallbackResponse(messageBody, profileName);
+
+        // Si es un error de límite de tokens, intentar con una sesión nueva
+        if (dfError.message && dfError.message.includes('Token limit exceeded')) {
+          console.log('⚠️  Token limit exceeded, reintentando con sesión nueva...');
+          try {
+            // Crear una sesión completamente nueva con timestamp actual
+            const newSessionId = `${senderNumber}-${Date.now()}`;
+            const textToProcess = transcribedText || messageBody;
+            const retryResponse = await detectIntentCX(textToProcess, newSessionId);
+            responseMessage = retryResponse.text;
+            console.log('✅ Reintento exitoso con nueva sesión');
+          } catch (retryError) {
+            console.error('❌ Reintento falló:', retryError);
+            responseMessage = getFallbackResponse(messageBody, profileName);
+          }
+        } else {
+          // Otro tipo de error, usar fallback
+          responseMessage = getFallbackResponse(messageBody, profileName);
+        }
       }
     } else {
       // Usar lógica simple si Dialogflow no está configurado
