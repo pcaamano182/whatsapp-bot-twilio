@@ -478,8 +478,43 @@ app.put('/api/orders/:orderId/items', async (req, res) => {
     const { items, total } = req.body;
 
     console.log('✏️ Actualizando items del pedido:', orderId);
+    console.log('   Items recibidos:', JSON.stringify(items));
 
-    const order = await updateOrderItems(orderId, items, total);
+    // Obtener el pedido actual
+    const currentOrder = await getOrder(orderId);
+    if (!currentOrder) {
+      return res.status(404).json({
+        success: false,
+        error: 'Pedido no encontrado'
+      });
+    }
+
+    console.log('   Items actuales:', JSON.stringify(currentOrder.items));
+
+    // Combinar items existentes con los nuevos
+    const existingItems = currentOrder.items || [];
+    const mergedItems = [...existingItems];
+
+    // Para cada item nuevo, actualizar cantidad si existe o agregarlo
+    items.forEach(newItem => {
+      const existingIndex = mergedItems.findIndex(
+        item => item.product.toLowerCase() === newItem.product.toLowerCase()
+      );
+
+      if (existingIndex >= 0) {
+        // Producto ya existe, sumar la cantidad
+        mergedItems[existingIndex].quantity += newItem.quantity;
+        console.log(`   ✓ Sumando ${newItem.quantity} kg a ${newItem.product} existente (ahora ${mergedItems[existingIndex].quantity} kg)`);
+      } else {
+        // Producto nuevo, agregarlo
+        mergedItems.push(newItem);
+        console.log(`   ✓ Agregando nuevo producto: ${newItem.quantity} kg de ${newItem.product}`);
+      }
+    });
+
+    console.log('   Items finales:', JSON.stringify(mergedItems));
+
+    const order = await updateOrderItems(orderId, mergedItems, total);
 
     res.json({
       success: true,
