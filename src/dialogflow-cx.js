@@ -142,7 +142,10 @@ export function getSessionPath(sessionId) {
  * @returns {boolean} true si está configurado
  */
 export function isDialogflowConfigured() {
-  const hasCredentials = process.env.DIALOGFLOW_CREDENTIALS || process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  // En Cloud Run (K_SERVICE existe), las credenciales se obtienen automáticamente del service account
+  const isCloudRun = !!process.env.K_SERVICE;
+  const hasCredentials = isCloudRun || process.env.DIALOGFLOW_CREDENTIALS || process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
   const required = [
     hasCredentials,
     process.env.DIALOGFLOW_PROJECT_ID,
@@ -154,7 +157,7 @@ export function isDialogflowConfigured() {
   if (!isConfigured) {
     console.warn('⚠️  Dialogflow CX no está completamente configurado');
     console.warn('   Variables faltantes en .env:');
-    if (!hasCredentials) {
+    if (!hasCredentials && !isCloudRun) {
       console.warn('   - DIALOGFLOW_CREDENTIALS o GOOGLE_APPLICATION_CREDENTIALS');
     }
     if (!process.env.DIALOGFLOW_PROJECT_ID) {
