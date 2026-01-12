@@ -39,18 +39,26 @@ const client = new SessionsClient(clientOptions);
  */
 export async function detectIntentCX(text, sessionId) {
   try {
+    console.log('🤖 Dialogflow CX - Iniciando detección de intent');
+    console.log('   📋 Configuración:');
+    console.log(`      Project ID: ${projectId}`);
+    console.log(`      Location: ${location}`);
+    console.log(`      Agent ID: ${agentId}`);
+    console.log(`      Language: ${languageCode}`);
+
     // Construir session path
+    console.log('   🔧 Construyendo session path...');
     const sessionPath = client.projectLocationAgentSessionPath(
       projectId,
       location,
       agentId,
       sessionId
     );
+    console.log(`   ✅ Session Path: ${sessionPath}`);
 
-    console.log('🤖 Dialogflow CX Request:');
-    console.log(`   Session: ${sessionId}`);
-    console.log(`   Text: ${text}`);
-    console.log(`   Session Path: ${sessionPath}`);
+    console.log('   📨 Request:');
+    console.log(`      Session ID: ${sessionId}`);
+    console.log(`      Text: ${text}`);
 
     // Request a Dialogflow CX
     const request = {
@@ -63,17 +71,21 @@ export async function detectIntentCX(text, sessionId) {
       },
     };
 
+    console.log('   🚀 Enviando request a Dialogflow CX...');
     // Enviar request
     const [response] = await client.detectIntent(request);
+    console.log('   ✅ Response recibida de Dialogflow CX');
+
     const queryResult = response.queryResult;
 
-    console.log('✅ Dialogflow CX Response:');
-    console.log(`   Intent: ${queryResult.intent?.displayName || 'No intent'}`);
-    console.log(`   Confidence: ${queryResult.intentDetectionConfidence || 0}`);
-    console.log(`   Response Messages: ${queryResult.responseMessages?.length || 0}`);
+    console.log('   📊 Dialogflow CX Response:');
+    console.log(`      Intent: ${queryResult.intent?.displayName || 'No intent'}`);
+    console.log(`      Confidence: ${queryResult.intentDetectionConfidence || 0}`);
+    console.log(`      Response Messages: ${queryResult.responseMessages?.length || 0}`);
 
     // Extraer texto de respuesta
     const responseText = extractResponseText(queryResult);
+    console.log(`      Response Text: ${responseText.substring(0, 100)}...`);
 
     // Extraer parámetros
     const parameters = queryResult.parameters || {};
@@ -95,7 +107,13 @@ export async function detectIntentCX(text, sessionId) {
     };
 
   } catch (error) {
-    console.error('❌ Error en Dialogflow CX:', error);
+    console.error('❌❌❌ ERROR CRÍTICO EN DIALOGFLOW CX ❌❌❌');
+    console.error('   Error Type:', error.constructor.name);
+    console.error('   Error Message:', error.message);
+    console.error('   Error Code:', error.code);
+    console.error('   Error Details:', error.details);
+    console.error('   Full Error:', JSON.stringify(error, null, 2));
+    console.error('   Stack Trace:', error.stack);
     throw error;
   }
 }

@@ -18,6 +18,7 @@ import {
 } from './orders.js';
 import { saveMessage, linkOrderToConversation } from './conversations.js';
 import { handleDialogflowWebhook } from './dialogflow-webhook.js';
+import { downloadAudioFromTwilio, transcribeAudio, isSpeechToTextConfigured } from './speech.js';
 
 dotenv.config();
 
@@ -72,35 +73,86 @@ app.post('/webhook/whatsapp', async (req, res) => {
       Body: messageBody,
       From: senderNumber,
       WaId: whatsappId,
-      ProfileName: profileName
+      ProfileName: profileName,
+      NumMedia,
+      MediaContentType0,
+      MediaUrl0
     } = req.body;
+
+    // Detectar si es un mensaje de audio
+    let isAudio = false;
+    let transcribedText = null;
+
+    if (NumMedia && parseInt(NumMedia) > 0 && MediaContentType0 && MediaContentType0.startsWith('audio/')) {
+      isAudio = true;
+      console.log('🎤 Mensaje de audio detectado');
+      console.log(`   Tipo: ${MediaContentType0}`);
+      console.log(`   URL: ${MediaUrl0}`);
+
+      // Intentar transcribir el audio
+      if (isSpeechToTextConfigured()) {
+        try {
+          const accountSid = process.env.TWILIO_ACCOUNT_SID;
+          const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+          // Descargar audio
+          const audioBuffer = await downloadAudioFromTwilio(MediaUrl0, accountSid, authToken);
+
+          // Transcribir
+          transcribedText = await transcribeAudio(audioBuffer, MediaContentType0);
+
+          console.log('✅ Audio transcrito exitosamente:', transcribedText);
+        } catch (error) {
+          console.error('❌ Error transcribiendo audio:', error);
+          transcribedText = null;
+        }
+      } else {
+        console.log('⚠️  Speech-to-Text no está configurado');
+      }
+    }
 
     // Log del mensaje recibido
     console.log('📨 Mensaje recibido:');
     console.log(`   De: ${profileName} (${senderNumber})`);
     console.log(`   WhatsApp ID: ${whatsappId}`);
-    console.log(`   Mensaje: ${messageBody}`);
+    console.log(`   Mensaje: ${transcribedText || messageBody || (isAudio ? '🎤 Audio' : '')}`);
 
     // Guardar mensaje entrante en Firestore
-    await saveMessage({
+    const messageToSave = {
       customerPhone: senderNumber,
       customerName: profileName || 'Cliente',
-      text: messageBody,
+      text: transcribedText || messageBody || (isAudio ? '🎤 Audio' : ''),
       direction: 'incoming'
-    });
+    };
+
+    if (isAudio) {
+      messageToSave.isAudio = true;
+      messageToSave.audioUrl = MediaUrl0;
+      messageToSave.audioType = MediaContentType0;
+      if (transcribedText) {
+        messageToSave.transcription = transcribedText;
+      }
+    }
+
+    await saveMessage(messageToSave);
 
     // Crear respuesta TwiML
     const twiml = new twilio.twiml.MessagingResponse();
     let responseMessage;
 
-    // Verificar si Dialogflow CX está configurado
-    if (isDialogflowConfigured()) {
+    // Si es audio sin transcripción exitosa
+    if (isAudio && !transcribedText) {
+      responseMessage = 'No pude escuchar bien el audio. ¿Podés escribir tu mensaje o enviarlo de nuevo?';
+    } else if (isDialogflowConfigured()) {
       try {
         // Usar número de WhatsApp como sessionId (mantiene contexto por usuario)
         const sessionId = senderNumber; // "whatsapp:+59895262076"
 
+        // Usar el texto transcrito si está disponible, si no el messageBody
+        const textToProcess = transcribedText || messageBody;
+
         // Enviar mensaje a Dialogflow CX
-        const dialogflowResponse = await detectIntentCX(messageBody, sessionId);
+        const dialogflowResponse = await detectIntentCX(textToProcess, sessionId);
 
         responseMessage = dialogflowResponse.text;
 
@@ -597,3 +649,4 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (error) => {
   console.error('❌ Unhandled Rejection:', error);
 });
+console.log('ENV CHECK:', process.env.DIALOGFLOW_PROJECT_ID);
