@@ -71,6 +71,35 @@ export default function Orders() {
     });
   };
 
+  // Helper para detectar coordenadas y convertir a link de Google Maps
+  const formatAddress = (address) => {
+    if (!address) return null;
+
+    // Detectar si es una ubicación con coordenadas
+    // Formato: "Ubicación compartida: -34.9011, -56.1645" o "Ubicación: -34.9011, -56.1645"
+    const coordsMatch = address.match(/Ubicación.*?:\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+
+    if (coordsMatch) {
+      const lat = coordsMatch[1];
+      const lng = coordsMatch[2];
+      const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+
+      return {
+        isLocation: true,
+        lat,
+        lng,
+        mapsUrl,
+        display: `📍 ${lat}, ${lng}`,
+      };
+    }
+
+    // Si no es coordenadas, es una dirección de texto
+    return {
+      isLocation: false,
+      display: address,
+    };
+  };
+
   if (isLoading) {
     return (
       <div className="loading-container">
@@ -139,12 +168,26 @@ export default function Orders() {
                   <Phone size={16} />
                   <span className="info-row-secondary">{order.customerPhone}</span>
                 </div>
-                {order.deliveryAddress && (
-                  <div className="info-row">
-                    <MapPin size={16} />
-                    <span className="info-row-secondary">{order.deliveryAddress}</span>
-                  </div>
-                )}
+                {order.deliveryAddress && (() => {
+                  const addressInfo = formatAddress(order.deliveryAddress);
+                  return addressInfo ? (
+                    <div className="info-row">
+                      <MapPin size={16} />
+                      {addressInfo.isLocation ? (
+                        <a
+                          href={addressInfo.mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="info-row-link"
+                        >
+                          {addressInfo.display}
+                        </a>
+                      ) : (
+                        <span className="info-row-secondary">{addressInfo.display}</span>
+                      )}
+                    </div>
+                  ) : null;
+                })()}
               </div>
 
               {/* Order Details */}

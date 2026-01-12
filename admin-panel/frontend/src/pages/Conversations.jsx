@@ -38,10 +38,22 @@ export default function Conversations() {
     refetchIntervalInBackground: true, // Continue refetching even when tab is not focused
   });
 
-  // Scroll automático al último mensaje cuando se cargan los mensajes
+  // Scroll automático solo cuando se agregan NUEVOS mensajes, no en cada refresh
+  const prevMessagesLengthRef = useRef(0);
+
+  // Resetear contador cuando cambia la conversación
+  useEffect(() => {
+    prevMessagesLengthRef.current = 0;
+  }, [selectedConversation?.id]);
+
   useEffect(() => {
     if (messages && messages.length > 0) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      // Solo hacer scroll si el número de mensajes aumentó (nuevo mensaje)
+      // O si es la primera carga de mensajes (prevMessagesLengthRef.current === 0)
+      if (messages.length > prevMessagesLengthRef.current || prevMessagesLengthRef.current === 0) {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
+      prevMessagesLengthRef.current = messages.length;
     }
   }, [messages]);
 
@@ -72,6 +84,35 @@ export default function Conversations() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  // Helper para detectar coordenadas y convertir a link de Google Maps
+  const formatMessageText = (text) => {
+    if (!text) return null;
+
+    // Detectar si es una ubicación con coordenadas
+    // Formato: "Ubicación compartida: -34.9011, -56.1645" o "Ubicación: -34.9011, -56.1645"
+    const coordsMatch = text.match(/Ubicación.*?:\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+
+    if (coordsMatch) {
+      const lat = coordsMatch[1];
+      const lng = coordsMatch[2];
+      const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+
+      return {
+        isLocation: true,
+        lat,
+        lng,
+        mapsUrl,
+        originalText: text,
+      };
+    }
+
+    // Si no es coordenadas, es texto normal
+    return {
+      isLocation: false,
+      text,
+    };
   };
 
   const filteredConversations = searchTerm
@@ -201,17 +242,37 @@ export default function Conversations() {
                   </div>
                 ) : messages && messages.length > 0 ? (
                   <>
-                    {messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`message ${message.direction === 'outgoing' ? 'message-outgoing' : 'message-incoming'}`}
-                      >
-                        <div className="message-bubble">
-                          <p className="message-text">{message.text}</p>
-                          <span className="message-time">{formatMessageTime(message.timestamp)}</span>
+                    {messages.map((message) => {
+                      const messageContent = formatMessageText(message.text);
+                      return (
+                        <div
+                          key={message.id}
+                          className={`message ${message.direction === 'outgoing' ? 'message-outgoing' : 'message-incoming'}`}
+                        >
+                          <div className="message-bubble">
+                            {messageContent?.isLocation ? (
+                              <div className="message-location">
+                                <p className="message-text">📍 Ubicación compartida</p>
+                                <a
+                                  href={messageContent.mapsUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="message-location-link"
+                                >
+                                  Ver en Google Maps
+                                </a>
+                                <p className="message-coordinates">
+                                  {messageContent.lat}, {messageContent.lng}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="message-text">{messageContent?.text || message.text}</p>
+                            )}
+                            <span className="message-time">{formatMessageTime(message.timestamp)}</span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     <div ref={messagesEndRef} />
                   </>
                 ) : (

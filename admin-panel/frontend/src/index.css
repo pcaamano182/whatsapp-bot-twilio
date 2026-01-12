@@ -457,6 +457,19 @@ body {
   font-size: 0.875rem;
 }
 
+.info-row-link {
+  color: var(--primary);
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.info-row-link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
 .order-items {
   border-top: 1px solid var(--gray-100);
   padding-top: 1rem;
@@ -931,6 +944,8 @@ body {
   display: flex;
   flex-direction: column;
   background: var(--gray-50);
+  height: 100%;
+  overflow: hidden;
 }
 
 .conversation-search {
@@ -967,6 +982,7 @@ body {
 .conversation-list {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .conversation-item {
@@ -1165,6 +1181,49 @@ body {
   text-align: right;
 }
 
+.message-location {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.message-location-link {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.message-incoming .message-location-link {
+  background: var(--primary);
+  color: white;
+}
+
+.message-incoming .message-location-link:hover {
+  background: var(--primary-dark);
+}
+
+.message-outgoing .message-location-link {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.message-outgoing .message-location-link:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.message-coordinates {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  font-family: monospace;
+  margin: 0;
+}
+
 .conversation-empty-state {
   display: flex;
   flex-direction: column;
@@ -1192,3 +1251,4 @@ body {
     display: flex;
   }
 }
+/* Updated Mon, Jan 12, 2026  5:07:26 PM */

@@ -76,8 +76,22 @@ app.post('/webhook/whatsapp', async (req, res) => {
       ProfileName: profileName,
       NumMedia,
       MediaContentType0,
-      MediaUrl0
+      MediaUrl0,
+      Latitude,
+      Longitude
     } = req.body;
+
+    // Detectar si es un mensaje de ubicación
+    let isLocation = false;
+    let locationText = null;
+
+    if (Latitude && Longitude) {
+      isLocation = true;
+      locationText = `Ubicación compartida: ${Latitude}, ${Longitude}`;
+      console.log('📍 Ubicación compartida detectada');
+      console.log(`   Latitud: ${Latitude}`);
+      console.log(`   Longitud: ${Longitude}`);
+    }
 
     // Detectar si es un mensaje de audio
     let isAudio = false;
@@ -115,15 +129,21 @@ app.post('/webhook/whatsapp', async (req, res) => {
     console.log('📨 Mensaje recibido:');
     console.log(`   De: ${profileName} (${senderNumber})`);
     console.log(`   WhatsApp ID: ${whatsappId}`);
-    console.log(`   Mensaje: ${transcribedText || messageBody || (isAudio ? '🎤 Audio' : '')}`);
+    console.log(`   Mensaje: ${locationText || transcribedText || messageBody || (isAudio ? '🎤 Audio' : '')}`);
 
     // Guardar mensaje entrante en Firestore
     const messageToSave = {
       customerPhone: senderNumber,
       customerName: profileName || 'Cliente',
-      text: transcribedText || messageBody || (isAudio ? '🎤 Audio' : ''),
+      text: locationText || transcribedText || messageBody || (isAudio ? '🎤 Audio' : ''),
       direction: 'incoming'
     };
+
+    if (isLocation) {
+      messageToSave.isLocation = true;
+      messageToSave.latitude = Latitude;
+      messageToSave.longitude = Longitude;
+    }
 
     if (isAudio) {
       messageToSave.isAudio = true;
@@ -151,8 +171,8 @@ app.post('/webhook/whatsapp', async (req, res) => {
         const sessionTimestamp = Math.floor(Date.now() / (30 * 60 * 1000)); // 30 minutos
         const sessionId = `${senderNumber}-${sessionTimestamp}`; // "whatsapp:+59895262076-12345"
 
-        // Usar el texto transcrito si está disponible, si no el messageBody
-        const textToProcess = transcribedText || messageBody;
+        // Usar ubicación, texto transcrito o messageBody
+        const textToProcess = locationText || transcribedText || messageBody;
 
         // Enviar mensaje a Dialogflow CX
         const dialogflowResponse = await detectIntentCX(textToProcess, sessionId);
@@ -174,7 +194,7 @@ app.post('/webhook/whatsapp', async (req, res) => {
           try {
             // Crear una sesión completamente nueva con timestamp actual
             const newSessionId = `${senderNumber}-${Date.now()}`;
-            const textToProcess = transcribedText || messageBody;
+            const textToProcess = locationText || transcribedText || messageBody;
             const retryResponse = await detectIntentCX(textToProcess, newSessionId);
             responseMessage = retryResponse.text;
             console.log('✅ Reintento exitoso con nueva sesión');
