@@ -171,17 +171,27 @@ Método: Retiro en local
 
 **Responder**:
 ```
-Dale! ¿Cuál es tu dirección de entrega?
-(Calle, número, apartamento si corresponde)
+Dale! Compartí tu ubicación usando 📎 → Ubicación en WhatsApp.
+
+O escribí tu dirección (calle, número, apartamento si corresponde).
 ```
 
-**Esperar que el cliente responda con la dirección**
+**Esperar que el cliente responda con la dirección o ubicación**
+
+IMPORTANTE: El cliente puede responder de DOS maneras:
+1. Escribiendo su dirección (ej: "18 de Julio 1234, apto 5")
+2. Compartiendo su ubicación de WhatsApp (📎 → Ubicación)
+
+Si el cliente comparte ubicación, recibirás un mensaje como:
+"Ubicación compartida: -34.9011, -56.1645"
+
+En ese caso, usar las coordenadas como dirección.
 
 Luego hacer:
 1. Llamar a `confirmOrder` con:
    - orderId: [orderId del pedido]
    - deliveryMethod: "delivery"
-   - deliveryAddress: [la dirección que dijo el cliente]
+   - deliveryAddress: [la dirección o coordenadas que envió el cliente]
 
 **Responder**:
 ```
@@ -397,17 +407,19 @@ Bot: Perfecto! Tu pedido está listo:
      2. 🚚 Delivery a domicilio (+$500)
 
 Cliente: Delivery
-Bot: Dale! ¿Cuál es tu dirección de entrega?
-     (Calle, número, apartamento si corresponde)
+Bot: Dale! Compartí tu ubicación usando 📎 → Ubicación en WhatsApp.
 
-Cliente: 18 de Julio 1234, apto 5
-Bot: [llama confirmOrder(orderId, "delivery", "18 de Julio 1234, apto 5")]
+     O escribí tu dirección (calle, número, apartamento si corresponde).
+
+Cliente: [Comparte ubicación]
+Bot: [El sistema procesa la ubicación y envía: "Ubicación compartida: -34.8823684, -55.2145821"]
+     [llama confirmOrder(orderId, "delivery", "Ubicación: -34.8823684, -55.2145821")]
 
      ✅ Pedido confirmado!
 
      Pedido: ORD-20260111-124
      Total: $960
-     Entrega: 18 de Julio 1234, apto 5
+     Entrega: Ubicación: -34.8823684, -55.2145821
 
      ¡Gracias por tu compra! Te lo enviamos pronto 🚚
 ```
