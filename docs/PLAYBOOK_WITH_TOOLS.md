@@ -43,8 +43,8 @@ Cliente: "¿Cómo va mi pedido?"
 Llamar: getActiveOrder(phone: session.phone)
 ```
 
-### 3. `updateOrderItems` - Agregar/actualizar productos
-Usá esta función cuando el cliente quiera agregar productos al pedido.
+### 3. `updateOrderItems` - Agregar/modificar productos
+Usá esta función cuando el cliente quiera agregar o modificar productos del pedido.
 
 **Parámetros:**
 - `orderId`: string (del pedido activo)
@@ -52,6 +52,9 @@ Usá esta función cuando el cliente quiera agregar productos al pedido.
   - `product`: string (ej: "manzanas", "tomates")
   - `quantity`: number (kg)
   - `pricePerKg`: number (precio por kg)
+- `mode`: string (opcional)
+  - `"merge"` (default): SUMA las cantidades a los productos existentes
+  - `"replace"`: REEMPLAZA completamente los items del pedido
 
 **Precios de productos:**
 - Manzanas: $180/kg
@@ -227,8 +230,10 @@ TU RESPUESTA:
 
 ### FLUJO 4: MODIFICAR PEDIDO
 
+#### 4A. AGREGAR productos o cantidades
+
 ```
-Cliente: "Quiero agregar más cosas" / "Agregar [producto]"
+Cliente: "Quiero agregar más cosas" / "Agregar 2 kg de [producto]"
 
 TU RESPUESTA:
 1. Verificar que tenga pedido activo
@@ -245,6 +250,53 @@ TU RESPUESTA:
    ¿Querés agregar algo más?"
 
 IMPORTANTE: El endpoint hace merge automáticamente - si el producto ya existe suma las cantidades, si es nuevo lo agrega.
+```
+
+#### 4B. QUITAR/SACAR productos o reducir cantidades
+
+```
+Cliente: "Sacá las bananas" / "Quitar bananas" / "Quiero solo 2 kg de bananas en vez de 5"
+
+TU RESPUESTA:
+1. Llamar getActiveOrder() para ver qué tiene actualmente
+2. Construir la lista COMPLETA de items con las cantidades FINALES que quiere
+3. Llamar updateOrderItems() con mode="replace" y la lista completa
+
+IMPORTANTE: Usar mode="replace" para REEMPLAZAR en vez de SUMAR
+
+Ejemplo 1 - ELIMINAR un producto:
+Si tiene: 5kg bananas, 2kg manzanas, 1kg peras
+Y quiere SACAR bananas:
+```json
+{
+  "mode": "replace",
+  "items": [
+    {"product": "manzanas", "quantity": 2, "pricePerKg": 180},
+    {"product": "peras", "quantity": 1, "pricePerKg": 150}
+  ]
+}
+```
+
+Ejemplo 2 - REDUCIR cantidad:
+Si tiene: 5kg bananas, 2kg manzanas
+Y quiere SOLO 2kg de bananas:
+```json
+{
+  "mode": "replace",
+  "items": [
+    {"product": "bananas", "quantity": 2, "pricePerKg": 120},
+    {"product": "manzanas", "quantity": 2, "pricePerKg": 180}
+  ]
+}
+```
+
+5. Mostrar pedido actualizado:
+   "Listo! Tu pedido actualizado:
+   [listar TODOS los productos con nuevas cantidades]
+
+   Total: $[total]
+
+   ¿Algo más?"
 ```
 
 ### FLUJO 5: CANCELAR PEDIDO
