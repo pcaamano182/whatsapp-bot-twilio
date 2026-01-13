@@ -61,7 +61,24 @@ export default function Orders() {
 
   const formatDate = (timestamp) => {
     if (!timestamp) return 'N/A';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+
+    let date;
+    if (timestamp.toDate) {
+      // Firestore Timestamp
+      date = timestamp.toDate();
+    } else if (timestamp._seconds) {
+      // Firestore Timestamp serializado
+      date = new Date(timestamp._seconds * 1000);
+    } else {
+      // String ISO o Date object
+      date = new Date(timestamp);
+    }
+
+    // Verificar si la fecha es válida
+    if (isNaN(date.getTime())) {
+      return 'N/A';
+    }
+
     return date.toLocaleDateString('es-AR', {
       day: '2-digit',
       month: 'short',
@@ -76,8 +93,14 @@ export default function Orders() {
     if (!address) return null;
 
     // Detectar si es una ubicación con coordenadas
-    // Formato: "Ubicación compartida: -34.9011, -56.1645" o "Ubicación: -34.9011, -56.1645"
-    const coordsMatch = address.match(/Ubicación.*?:\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+    // Formato 1: "Ubicación compartida: -34.9011, -56.1645" o "Ubicación: -34.9011, -56.1645"
+    // Formato 2: Solo coordenadas: "-34.9011, -56.1645"
+    let coordsMatch = address.match(/Ubicación.*?:\s*(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
+
+    // Si no coincide con formato "Ubicación:", intentar detectar solo coordenadas
+    if (!coordsMatch) {
+      coordsMatch = address.match(/^(-?\d+\.?\d+),\s*(-?\d+\.?\d+)$/);
+    }
 
     if (coordsMatch) {
       const lat = coordsMatch[1];
@@ -89,7 +112,8 @@ export default function Orders() {
         lat,
         lng,
         mapsUrl,
-        display: `📍 ${lat}, ${lng}`,
+        display: `📍 Ver ubicación en el mapa`,
+        coordinates: `${lat}, ${lng}`,
       };
     }
 
@@ -174,20 +198,39 @@ export default function Orders() {
                     <div className="info-row">
                       <MapPin size={16} />
                       {addressInfo.isLocation ? (
-                        <a
-                          href={addressInfo.mapsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="info-row-link"
-                        >
-                          {addressInfo.display}
-                        </a>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                          <a
+                            href={addressInfo.mapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="info-row-link"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {addressInfo.display}
+                          </a>
+                          <span className="info-row-secondary" style={{ fontSize: '0.7rem', opacity: 0.7 }}>
+                            Click para ver en el mapa
+                          </span>
+                        </div>
                       ) : (
                         <span className="info-row-secondary">{addressInfo.display}</span>
                       )}
                     </div>
                   ) : null;
                 })()}
+                {/* Delivery Method */}
+                {order.deliveryMethod && (
+                  <div className="delivery-method-container">
+                    <div className={`delivery-badge ${order.deliveryMethod === 'delivery' ? 'delivery-badge-delivery' : 'delivery-badge-pickup'}`}>
+                      {order.deliveryMethod === 'delivery' ? '🚚 Delivery' : '🏪 Retiro en local'}
+                    </div>
+                    {order.deliveryMethod === 'delivery' && order.deliveryFee > 0 && (
+                      <span className="delivery-fee">
+                        Costo de envío: ${typeof order.deliveryFee === 'string' ? order.deliveryFee.replace(/\$/g, '') : order.deliveryFee}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Order Details */}
@@ -210,8 +253,7 @@ export default function Orders() {
                   <span className="order-date-text">{formatDate(order.createdAt)}</span>
                 </div>
                 <div className="order-total">
-                  <DollarSign size={16} />
-                  <span className="order-total-amount">${order.total}</span>
+                  <span className="order-total-amount">${typeof order.total === 'string' ? order.total.replace(/\$/g, '') : order.total}</span>
                 </div>
               </div>
 

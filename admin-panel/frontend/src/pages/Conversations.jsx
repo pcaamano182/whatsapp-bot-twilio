@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { conversationsAPI } from '../api/client';
 import {
   MessageCircle,
@@ -9,12 +9,18 @@ import {
   Search,
   ChevronRight,
   ShoppingBag,
+  Send,
 } from 'lucide-react';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
 export default function Conversations() {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [newMessage, setNewMessage] = useState('');
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
+  const queryClient = useQueryClient();
 
   const { data: conversations, isLoading } = useQuery({
     queryKey: ['conversations'],
@@ -123,6 +129,44 @@ export default function Conversations() {
       )
     : conversations;
 
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+
+    if (!newMessage.trim() || !selectedConversation || sending) return;
+
+    setSending(true);
+
+    try {
+      const response = await fetch(`${API_URL}/messages/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          to: selectedConversation.customerPhone,
+          message: newMessage.trim()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al enviar mensaje');
+      }
+
+      // Limpiar input
+      setNewMessage('');
+
+      // Refrescar mensajes
+      queryClient.invalidateQueries(['messages', selectedConversation.id]);
+
+    } catch (error) {
+      console.error('Error enviando mensaje:', error);
+      alert('Error al enviar mensaje');
+    } finally {
+      setSending(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="loading-container">
@@ -183,7 +227,7 @@ export default function Conversations() {
                   </div>
                   <div className="conversation-item-footer">
                     <Phone size={12} />
-                    <span className="conversation-item-phone">{conversation.phoneNumber}</span>
+                    <span className="conversation-item-phone">{conversation.customerPhone}</span>
                     {conversation.hasOrders && (
                       <ShoppingBag size={12} style={{ marginLeft: 'auto' }} color="#16a34a" />
                     )}
@@ -258,12 +302,21 @@ export default function Conversations() {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="message-location-link"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                  }}
                                 >
-                                  Ver en Google Maps
+                                  🗺️ Ver en Google Maps
                                 </a>
-                                <p className="message-coordinates">
+                                <a
+                                  href={messageContent.mapsUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="message-coordinates-link"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
                                   {messageContent.lat}, {messageContent.lng}
-                                </p>
+                                </a>
                               </div>
                             ) : (
                               <p className="message-text">{messageContent?.text || message.text}</p>
@@ -281,6 +334,27 @@ export default function Conversations() {
                   </div>
                 )}
               </div>
+
+              {/* Message Input */}
+              {selectedConversation && (
+                <form onSubmit={handleSendMessage} className="message-input-container">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Escribe un mensaje..."
+                    className="message-input"
+                    disabled={sending}
+                  />
+                  <button
+                    type="submit"
+                    className="send-button"
+                    disabled={!newMessage.trim() || sending}
+                  >
+                    <Send size={20} />
+                  </button>
+                </form>
+              )}
             </>
           ) : (
             <div className="conversation-empty-state">

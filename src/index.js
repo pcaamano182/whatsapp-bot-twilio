@@ -16,7 +16,7 @@ import {
   formatOrderForCustomer,
   OrderStatus
 } from './orders.js';
-import { saveMessage, linkOrderToConversation } from './conversations.js';
+import { saveMessage, linkOrderToConversation, getConversationByPhone } from './conversations.js';
 import { handleDialogflowWebhook } from './dialogflow-webhook.js';
 import { downloadAudioFromTwilio, transcribeAudio, isSpeechToTextConfigured } from './speech.js';
 
@@ -24,6 +24,12 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+
+// Inicializar cliente de Twilio para enviar mensajes
+const twilioClient = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
 
 // Middleware para parsear application/x-www-form-urlencoded (formato de Twilio)
 app.use(express.urlencoded({ extended: false }));
@@ -516,10 +522,11 @@ app.get('/api/orders/customer/:phone/active', async (req, res) => {
 app.put('/api/orders/:orderId/items', async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { items, total } = req.body;
+    const { items, total, mode } = req.body; // mode: 'merge' (default) o 'replace'
 
     console.log('✏️ Actualizando items del pedido:', orderId);
     console.log('   Items recibidos:', JSON.stringify(items));
+    console.log('   Modo:', mode || 'merge (default)');
 
     // Obtener el pedido actual
     const currentOrder = await getOrder(orderId);
@@ -532,30 +539,40 @@ app.put('/api/orders/:orderId/items', async (req, res) => {
 
     console.log('   Items actuales:', JSON.stringify(currentOrder.items));
 
-    // Combinar items existentes con los nuevos
-    const existingItems = currentOrder.items || [];
-    const mergedItems = [...existingItems];
+    let finalItems;
 
-    // Para cada item nuevo, actualizar cantidad si existe o agregarlo
-    items.forEach(newItem => {
-      const existingIndex = mergedItems.findIndex(
-        item => item.product.toLowerCase() === newItem.product.toLowerCase()
-      );
+    if (mode === 'replace') {
+      // Modo REPLACE: Los items enviados reemplazan completamente los existentes
+      finalItems = items;
+      console.log('   🔄 Modo REPLACE: Reemplazando todos los items');
+    } else {
+      // Modo MERGE (default): Combinar items existentes con los nuevos
+      const existingItems = currentOrder.items || [];
+      const mergedItems = [...existingItems];
 
-      if (existingIndex >= 0) {
-        // Producto ya existe, sumar la cantidad
-        mergedItems[existingIndex].quantity += newItem.quantity;
-        console.log(`   ✓ Sumando ${newItem.quantity} kg a ${newItem.product} existente (ahora ${mergedItems[existingIndex].quantity} kg)`);
-      } else {
-        // Producto nuevo, agregarlo
-        mergedItems.push(newItem);
-        console.log(`   ✓ Agregando nuevo producto: ${newItem.quantity} kg de ${newItem.product}`);
-      }
-    });
+      // Para cada item nuevo, actualizar cantidad si existe o agregarlo
+      items.forEach(newItem => {
+        const existingIndex = mergedItems.findIndex(
+          item => item.product.toLowerCase() === newItem.product.toLowerCase()
+        );
 
-    console.log('   Items finales:', JSON.stringify(mergedItems));
+        if (existingIndex >= 0) {
+          // Producto ya existe, sumar la cantidad
+          mergedItems[existingIndex].quantity += newItem.quantity;
+          console.log(`   ✓ Sumando ${newItem.quantity} kg a ${newItem.product} existente (ahora ${mergedItems[existingIndex].quantity} kg)`);
+        } else {
+          // Producto nuevo, agregarlo
+          mergedItems.push(newItem);
+          console.log(`   ✓ Agregando nuevo producto: ${newItem.quantity} kg de ${newItem.product}`);
+        }
+      });
 
-    const order = await updateOrderItems(orderId, mergedItems, total);
+      finalItems = mergedItems;
+    }
+
+    console.log('   Items finales:', JSON.stringify(finalItems));
+
+    const order = await updateOrderItems(orderId, finalItems, total);
 
     // Formatear mensaje con el pedido completo
     let itemsSummary = '';
@@ -706,6 +723,62 @@ app.get('/payment/pending', (req, res) => {
       </body>
     </html>
   `);
+});
+
+/**
+ * Endpoint para enviar mensajes de WhatsApp desde el admin panel
+ * POST /api/messages/send
+ */
+app.post('/api/messages/send', async (req, res) => {
+  try {
+    const { to, message } = req.body;
+
+    if (!to || !message) {
+      return res.status(400).json({
+        success: false,
+        error: 'Faltan parámetros: to y message son requeridos'
+      });
+    }
+
+    console.log(`📤 Enviando mensaje a ${to}:`, message);
+
+    // El número de Twilio ya viene con el prefijo whatsapp: en el secret
+    const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER;
+    console.log(`📤 Usando número: ${fromNumber}`);
+
+    // Enviar mensaje via Twilio
+    const twilioMessage = await twilioClient.messages.create({
+      from: fromNumber,
+      to: to,
+      body: message
+    });
+
+    // Obtener nombre del cliente desde Firestore
+    const conversation = await getConversationByPhone(to);
+    const customerName = conversation?.customerName || 'Cliente';
+
+    // Guardar mensaje en Firestore
+    await saveMessage({
+      customerPhone: to,
+      customerName: customerName,
+      text: message,
+      direction: 'outgoing'
+    });
+
+    console.log(`✅ Mensaje enviado: ${twilioMessage.sid}`);
+
+    res.json({
+      success: true,
+      messageSid: twilioMessage.sid
+    });
+
+  } catch (error) {
+    console.error('❌ Error enviando mensaje:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
 // Iniciar servidor

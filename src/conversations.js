@@ -130,3 +130,30 @@ export async function linkOrderToConversation(customerPhone, orderId) {
     console.error('❌ Error asociando pedido a conversación:', error);
   }
 }
+
+/**
+ * Obtiene la conversación de un cliente por su teléfono
+ * @param {string} customerPhone - Número de teléfono del cliente
+ * @returns {Promise<Object|null>} Conversación o null si no existe
+ */
+export async function getConversationByPhone(customerPhone) {
+  try {
+    const snapshot = await conversationsCollection
+      .where('customerPhone', '==', customerPhone)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) {
+      return null;
+    }
+
+    const doc = snapshot.docs[0];
+    return {
+      id: doc.id,
+      ...doc.data()
+    };
+  } catch (error) {
+    console.error('❌ Error obteniendo conversación:', error);
+    return null;
+  }
+}

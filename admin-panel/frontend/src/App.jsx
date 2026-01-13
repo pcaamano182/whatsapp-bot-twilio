@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Orders from './pages/Orders';
 import Conversations from './pages/Conversations';
+import Map from './pages/Map';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +35,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="orders" element={<Orders />} />
             <Route path="conversations" element={<Conversations />} />
+            <Route path="map" element={<Map />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

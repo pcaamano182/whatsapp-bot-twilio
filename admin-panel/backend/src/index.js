@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes.js';
 import ordersRoutes from './routes/orders.routes.js';
 import conversationsRoutes from './routes/conversations.routes.js';
+import messagesRoutes from './routes/messages.routes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { initializeDefaultAdmin } from './services/auth.service.js';
 
@@ -62,6 +63,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/conversations', conversationsRoutes);
+app.use('/api/messages', messagesRoutes);
 
 // Error handling
 app.use(notFound);

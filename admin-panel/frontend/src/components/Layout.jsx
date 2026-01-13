@@ -1,6 +1,6 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
-import { LayoutDashboard, ShoppingCart, LogOut, User, MessageCircle } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, LogOut, User, MessageCircle, MapPin } from 'lucide-react';
 
 export default function Layout() {
   const { user, logout } = useAuthStore();
@@ -16,6 +16,7 @@ export default function Layout() {
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/orders', label: 'Pedidos', icon: ShoppingCart },
     { path: '/conversations', label: 'Conversaciones', icon: MessageCircle },
+    { path: '/map', label: 'Mapa', icon: MapPin },
   ];
 
   const isActive = (path) => {
