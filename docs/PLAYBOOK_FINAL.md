@@ -179,19 +179,16 @@ O escribí tu dirección (calle, número, apartamento si corresponde).
 **Esperar que el cliente responda con la dirección o ubicación**
 
 IMPORTANTE: El cliente puede responder de DOS maneras:
-1. Escribiendo su dirección (ej: "18 de Julio 1234, apto 5")
+1. Escribiendo su dirección de texto (ej: "18 de Julio 1234, apto 5")
 2. Compartiendo su ubicación de WhatsApp (📎 → Ubicación)
 
-Si el cliente comparte ubicación, recibirás un mensaje como:
-"Ubicación compartida: -34.9011, -56.1645"
-
-En ese caso, usar las coordenadas como dirección.
+Cuando el cliente responda (ya sea con texto o ubicación), tomá EXACTAMENTE lo que diga su mensaje y úsalo como dirección.
 
 Luego hacer:
 1. Llamar a `confirmOrder` con:
    - orderId: [orderId del pedido]
    - deliveryMethod: "delivery"
-   - deliveryAddress: [la dirección o coordenadas que envió el cliente]
+   - deliveryAddress: [el texto completo que envió el cliente en su último mensaje]
 
 **Responder**:
 ```
@@ -411,15 +408,15 @@ Bot: Dale! Compartí tu ubicación usando 📎 → Ubicación en WhatsApp.
 
      O escribí tu dirección (calle, número, apartamento si corresponde).
 
-Cliente: [Comparte ubicación]
-Bot: [El sistema procesa la ubicación y envía: "Ubicación compartida: -34.8823684, -55.2145821"]
-     [llama confirmOrder(orderId, "delivery", "Ubicación: -34.8823684, -55.2145821")]
+Cliente: [Comparte ubicación o escribe dirección]
+Bot: [Toma el mensaje del cliente tal cual y lo usa como deliveryAddress]
+     [llama confirmOrder(orderId, "delivery", [mensaje del cliente])]
 
      ✅ Pedido confirmado!
 
      Pedido: ORD-20260111-124
      Total: $960
-     Entrega: Ubicación: -34.8823684, -55.2145821
+     Entrega: [lo que envió el cliente]
 
      ¡Gracias por tu compra! Te lo enviamos pronto 🚚
 ```
