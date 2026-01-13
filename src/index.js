@@ -19,6 +19,7 @@ import {
 import { saveMessage, linkOrderToConversation, getConversationByPhone } from './conversations.js';
 import { handleDialogflowWebhook } from './dialogflow-webhook.js';
 import { downloadAudioFromTwilio, transcribeAudio, isSpeechToTextConfigured } from './speech.js';
+import { processPaymentReceipt, isStorageConfigured } from './payment-receipts.js';
 
 dotenv.config();
 
@@ -131,6 +132,47 @@ app.post('/webhook/whatsapp', async (req, res) => {
       }
     }
 
+    // Detectar si es un comprobante de pago (PDF)
+    let isPdf = false;
+    let receiptProcessingResult = null;
+
+    if (NumMedia && parseInt(NumMedia) > 0 && MediaContentType0 === 'application/pdf') {
+      isPdf = true;
+      console.log('📄 Comprobante PDF detectado');
+      console.log(`   Tipo: ${MediaContentType0}`);
+      console.log(`   URL: ${MediaUrl0}`);
+
+      // Procesar comprobante de pago
+      if (isStorageConfigured()) {
+        try {
+          const accountSid = process.env.TWILIO_ACCOUNT_SID;
+          const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+          receiptProcessingResult = await processPaymentReceipt(
+            MediaUrl0,
+            MediaContentType0,
+            senderNumber,
+            accountSid,
+            authToken
+          );
+
+          console.log('📋 Resultado del procesamiento:', receiptProcessingResult);
+        } catch (error) {
+          console.error('❌ Error procesando comprobante:', error);
+          receiptProcessingResult = {
+            success: false,
+            message: 'Hubo un error al procesar el comprobante. Por favor, intentá de nuevo.'
+          };
+        }
+      } else {
+        console.log('⚠️  Cloud Storage no está configurado');
+        receiptProcessingResult = {
+          success: false,
+          message: 'El sistema de comprobantes no está configurado. Contactá con atención al cliente.'
+        };
+      }
+    }
+
     // Log del mensaje recibido
     console.log('📨 Mensaje recibido:');
     console.log(`   De: ${profileName} (${senderNumber})`);
@@ -141,7 +183,7 @@ app.post('/webhook/whatsapp', async (req, res) => {
     const messageToSave = {
       customerPhone: senderNumber,
       customerName: profileName || 'Cliente',
-      text: locationText || transcribedText || messageBody || (isAudio ? '🎤 Audio' : ''),
+      text: locationText || transcribedText || messageBody || (isPdf ? '📄 Comprobante PDF' : (isAudio ? '🎤 Audio' : '')),
       direction: 'incoming'
     };
 
@@ -160,14 +202,27 @@ app.post('/webhook/whatsapp', async (req, res) => {
       }
     }
 
+    if (isPdf) {
+      messageToSave.isPdf = true;
+      messageToSave.pdfUrl = MediaUrl0;
+      if (receiptProcessingResult) {
+        messageToSave.receiptProcessed = receiptProcessingResult.success;
+        messageToSave.orderId = receiptProcessingResult.orderId;
+      }
+    }
+
     await saveMessage(messageToSave);
 
     // Crear respuesta TwiML
     const twiml = new twilio.twiml.MessagingResponse();
     let responseMessage;
 
+    // Si es un PDF (comprobante), responder con el resultado del procesamiento
+    if (isPdf && receiptProcessingResult) {
+      responseMessage = receiptProcessingResult.message;
+    }
     // Si es audio sin transcripción exitosa
-    if (isAudio && !transcribedText) {
+    else if (isAudio && !transcribedText) {
       responseMessage = 'No pude escuchar bien el audio. ¿Podés escribir tu mensaje o enviarlo de nuevo?';
     } else if (isDialogflowConfigured()) {
       try {

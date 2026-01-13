@@ -12,6 +12,11 @@ import {
   ChevronDown,
   RefreshCw,
   Filter,
+  FileText,
+  Download,
+  CheckCircle,
+  XCircle,
+  Clock,
 } from 'lucide-react';
 
 export default function Orders() {
@@ -245,6 +250,35 @@ export default function Orders() {
                   ))}
                 </div>
               </div>
+
+              {/* Payment Receipt */}
+              {order.paymentReceipt && (
+                <div className="payment-receipt-section">
+                  <div className="receipt-header">
+                    <FileText size={16} />
+                    <span className="receipt-title">Comprobante de Pago</span>
+                    {order.paymentReceipt.verified ? (
+                      <CheckCircle size={16} color="#16a34a" />
+                    ) : (
+                      <Clock size={16} color="#f59e0b" />
+                    )}
+                  </div>
+                  <div className="receipt-info">
+                    <span className="receipt-status">
+                      {order.paymentReceipt.verified ? 'Verificado' : 'Pendiente de verificación'}
+                    </span>
+                    <a
+                      href={order.paymentReceipt.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="receipt-download"
+                    >
+                      <Download size={14} />
+                      Ver comprobante
+                    </a>
+                  </div>
+                </div>
+              )}
 
               {/* Footer */}
               <div className="order-footer">
