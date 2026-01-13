@@ -119,12 +119,11 @@ export async function attachReceiptToOrder(orderId, receiptUrl, mediaUrl) {
 export async function getActiveOrderForCustomer(customerPhone) {
   console.log(`🔍 Buscando pedido activo para ${customerPhone}...`);
 
-  // Buscar pedidos confirmados o pendientes del cliente
+  // Buscar pedidos confirmados o pendientes del cliente SIN comprobante
   const snapshot = await ordersCollection
     .where('customerPhone', '==', customerPhone)
     .where('status', 'in', ['pending', 'confirmed'])
     .orderBy('createdAt', 'desc')
-    .limit(1)
     .get();
 
   if (snapshot.empty) {
@@ -132,12 +131,25 @@ export async function getActiveOrderForCustomer(customerPhone) {
     return null;
   }
 
-  const doc = snapshot.docs[0];
-  const order = {
-    id: doc.id,
-    ...doc.data()
-  };
+  // Filtrar pedidos que NO tienen comprobante adjunto
+  const ordersWithoutReceipt = [];
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (!data.paymentReceipt) {
+      ordersWithoutReceipt.push({
+        id: doc.id,
+        ...data
+      });
+    }
+  });
 
+  if (ordersWithoutReceipt.length === 0) {
+    console.log('❌ Todos los pedidos activos ya tienen comprobante adjunto');
+    return null;
+  }
+
+  // Retornar el más reciente sin comprobante
+  const order = ordersWithoutReceipt[0];
   console.log(`✅ Pedido activo encontrado: ${order.orderId}`);
   return order;
 }
@@ -165,21 +177,13 @@ export async function processPaymentReceipt(mediaUrl, mediaContentType, customer
       };
     }
 
-    // Buscar pedido activo del cliente
+    // Buscar pedido activo del cliente sin comprobante
     const activeOrder = await getActiveOrderForCustomer(customerPhone);
 
     if (!activeOrder) {
       return {
         success: false,
-        message: 'No encontré un pedido activo para adjuntar el comprobante. Por favor, primero confirmá tu pedido.'
-      };
-    }
-
-    // Verificar si ya tiene comprobante
-    if (activeOrder.paymentReceipt) {
-      return {
-        success: false,
-        message: 'Este pedido ya tiene un comprobante adjunto. Si querés actualizarlo, contactá con atención al cliente.'
+        message: 'No encontré un pedido activo sin comprobante. Si ya enviaste un comprobante para tu pedido actual, está siendo procesado. Para un nuevo pedido, primero confirmalo y luego enviá el comprobante.'
       };
     }
 
