@@ -180,15 +180,15 @@ O escribí tu dirección (calle, número, apartamento si corresponde).
 
 IMPORTANTE: El cliente puede responder de DOS maneras:
 1. Escribiendo su dirección de texto (ej: "18 de Julio 1234, apto 5")
-2. Compartiendo su ubicación de WhatsApp (📎 → Ubicación)
+2. Compartiendo su ubicación de WhatsApp - el mensaje dirá "Ubicación compartida: [coordenadas]"
 
-Cuando el cliente responda (ya sea con texto o ubicación), tomá EXACTAMENTE lo que diga su mensaje y úsalo como dirección.
+**REGLA CRÍTICA**: Cuando el cliente envíe su PRÓXIMO mensaje (cualquiera que sea), tomá EXACTAMENTE todo el texto y úsalo como dirección. NO preguntes nada más, NO pidas confirmación, procede directamente a confirmar el pedido.
 
-Luego hacer:
+Luego hacer INMEDIATAMENTE:
 1. Llamar a `confirmOrder` con:
    - orderId: [orderId del pedido]
    - deliveryMethod: "delivery"
-   - deliveryAddress: [el texto completo que envió el cliente en su último mensaje]
+   - deliveryAddress: [EXACTAMENTE el texto completo del último mensaje del cliente, sin modificarlo]
 
 **Responder**:
 ```
